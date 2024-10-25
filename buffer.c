@@ -7,7 +7,7 @@
 #include <string.h>
 #include <math.h>
 
-static const uint32_t growSize = 200;
+static const uint32_t growSize = 100;
 static const uint32_t initSize = 50;
 static const float_t  growPoint = 0.75;
 
@@ -30,6 +30,7 @@ void buf_init(struct buffer** ppBuf)
   }
 
   *ppBuf = calloc(1, sizeof(struct buffer));
+  fprintf(stderr, "[+] allocating buffer structure at 0x%8p\n", *ppBuf);
   
   (*ppBuf)->maxSize = initSize;
   (*ppBuf)->curSize = 0;
@@ -39,12 +40,16 @@ void buf_init(struct buffer** ppBuf)
 void buf_free(struct buffer** pbuf)
 {
   if((*pbuf)->data != NULL)
+  {
 	free((*pbuf)->data);
+	fprintf(stderr, "[+] freeing internal memory at 0x%8p\n", (*pbuf)->data);
+  }
 
   (*pbuf)->curSize = 0;
   (*pbuf)->peekPtr = 0;
 
   free(*pbuf);
+  fprintf(stderr, "[+] freeing buffer structure at 0x%8p\n", *pbuf);
   *pbuf = NULL;
 }
 
@@ -70,8 +75,10 @@ void buf_append(struct buffer* pbuf, char ch)
   {
 	int32_t newSize = pbuf->maxSize + growSize;
 	char* temp = calloc(1, newSize);
+	fprintf(stderr, "[+] allocating %d bytes of internal memory ot 0x%8p\n", newSize, temp);
 	memcpy(temp, pbuf->data, pbuf->curSize);
 	free(pbuf->data);
+	fprintf(stderr, "[+] freeing internal memory at 0x%8p\n", pbuf->data);
 	pbuf->maxSize = newSize;
 	pbuf->data = temp;
   }

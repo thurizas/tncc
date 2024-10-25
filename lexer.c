@@ -33,8 +33,11 @@ bool lexer_init(const char* name, uint8_t flags)
 	//struct buffer* buf = NULL;
 	buf_init(&buf);
 
+
 	// read file in character, perform some pre-processing of file
-	
+	// TODO : simple preprocessing of source file perform
+	//        (1) removal of extranious whitespace remove sequential spaces, \t=>' '
+	//        (2) convert physical lines of code to logical line '\\n' => ' '
 	while((ch = fgetc(fp)) != EOF)
 	{
 	  switch(ch)
@@ -67,6 +70,17 @@ bool lexer_init(const char* name, uint8_t flags)
 
 		break;
 
+		case '\\' :                                       // escape character
+		{
+		  char nextCh = fgetc(fp);
+		  if(nextCh != '\n')                              // not line continuation
+		  {
+			ungetc(nextCh, fp);
+			buf_append(buf, ch);
+		  }
+		}
+		break;
+
 		case '*' :
 		{
 		  char nextCh = fgetc(fp);
@@ -93,8 +107,17 @@ bool lexer_init(const char* name, uint8_t flags)
 		  buf_append(buf, ch);
 		  break;
 
+		  // max size: 50, curSize: 38 "#include <stdio.h>\n\n#define max(x, y) "
+		  //                           "0123456789112345678 9 212345678931234567894"
+		  //                           "          0           0         0         0"
+		  // need to do \t\t....\t => ' '
 		case '\t':                                        // replace a tab with a single space
-		  buf_append(buf, ' ');
+		{
+		  int len = buf_len(buf);
+		  char lastChar = buf_at(buf, len);
+		  if(buf_at(buf, buf_len(buf)) != ' ')
+			buf_append(buf, ' ');
+		}
 		  break;
 
 		default :
@@ -110,7 +133,7 @@ bool lexer_init(const char* name, uint8_t flags)
 	}
 
 	buf_print(buf);
-	buf_free(&buf);
+	//buf_free(&buf);
 	res = true;
 	fclose(fp);
   }

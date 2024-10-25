@@ -100,6 +100,9 @@ int main(int argc, char** argv)
 	res = ERR_LEX_FAILED;
   }
 
+  if(inName != NULL) free(inName);
+  if(outName != NULL) free(outName);
+  
   return res;
 }
 
