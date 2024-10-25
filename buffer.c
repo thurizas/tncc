@@ -21,7 +21,15 @@ struct buffer
 };
 
 
-
+/*
+[+] allocating buffer structure at 0x0x95d4d0
+[+] allocating 87 bytes of internal memory ot 0x0x95e540
+[+] freeing internal memory at 0x0x95d4f0
+[+] allocating 152 bytes of internal memory ot 0x0x95e5a0
+[+] freeing internal memory at 0x0x95e540
+[+] allocating 266 bytes of internal memory ot 0x0x95e640
+[+] freeing internal memory at 0x0x95e5a0
+ */
 void buf_init(struct buffer** ppBuf)
 {
   if(*ppBuf != NULL)
@@ -75,7 +83,7 @@ void buf_append(struct buffer* pbuf, char ch)
   {
 	int32_t newSize = pbuf->maxSize + growSize;
 	char* temp = calloc(1, newSize);
-	fprintf(stderr, "[+] allocating %d bytes of internal memory ot 0x%8p\n", newSize, temp);
+	fprintclf(stderr, "[+] allocating %d bytes of internal memory ot 0x%8p\n", newSize, temp);
 	memcpy(temp, pbuf->data, pbuf->curSize);
 	free(pbuf->data);
 	fprintf(stderr, "[+] freeing internal memory at 0x%8p\n", pbuf->data);
