@@ -7,7 +7,7 @@
 #include <string.h>
 #include <math.h>
 
-static const uint32_t growSize = 100;
+//static const uint32_t growSize = 100;
 static const uint32_t initSize = 50;
 static const float_t  growPoint = 0.75;
 
@@ -21,15 +21,6 @@ struct buffer
 };
 
 
-/*
-[+] allocating buffer structure at 0x0x95d4d0
-[+] allocating 87 bytes of internal memory ot 0x0x95e540
-[+] freeing internal memory at 0x0x95d4f0
-[+] allocating 152 bytes of internal memory ot 0x0x95e5a0
-[+] freeing internal memory at 0x0x95e540
-[+] allocating 266 bytes of internal memory ot 0x0x95e640
-[+] freeing internal memory at 0x0x95e5a0
- */
 void buf_init(struct buffer** ppBuf)
 {
   if(*ppBuf != NULL)
@@ -38,11 +29,12 @@ void buf_init(struct buffer** ppBuf)
   }
 
   *ppBuf = calloc(1, sizeof(struct buffer));
-  fprintf(stderr, "[+] allocating buffer structure at 0x%8p\n", *ppBuf);
+  //fprintf(stderr, "[+] allocating buffer structure in %s at 0x%8p\n", __func__, (void*)*ppBuf);
   
   (*ppBuf)->maxSize = initSize;
   (*ppBuf)->curSize = 0;
   (*ppBuf)->data = calloc(initSize, sizeof(char));
+  //fprintf(stderr, "allocating internal memory in %s at 0x%8p\n", __func__, (*ppBuf)->data);
 }
 
 void buf_free(struct buffer** pbuf)
@@ -50,14 +42,14 @@ void buf_free(struct buffer** pbuf)
   if((*pbuf)->data != NULL)
   {
 	free((*pbuf)->data);
-	fprintf(stderr, "[+] freeing internal memory at 0x%8p\n", (*pbuf)->data);
+	//fprintf(stderr, "[+] freeing internal memory in %s at 0x%8p\n", __func__,  (*pbuf)->data);
   }
 
   (*pbuf)->curSize = 0;
   (*pbuf)->peekPtr = 0;
 
   free(*pbuf);
-  fprintf(stderr, "[+] freeing buffer structure at 0x%8p\n", *pbuf);
+  //fprintf(stderr, "[+] freeing buffer structure in %s at 0x%8p\n", __func__, (void*)*pbuf);
   *pbuf = NULL;
 }
 
@@ -74,22 +66,20 @@ void buf_setPeekPtr(struct buffer* pbuf, int32_t loc)
 void buf_append(struct buffer* pbuf, char ch)
 {
   uint32_t growSize = floor(growPoint*(pbuf->maxSize));
-  if(pbuf->curSize <= growSize)
+  if(pbuf->curSize > growSize)              // grow the buffer by growSize
   {
-	pbuf->data[pbuf->curSize] = ch;
-	pbuf->curSize++;
+	  int32_t newSize = pbuf->maxSize + growSize;
+	  char* temp = calloc(1, newSize);
+	  //fprintf(stderr, "[+] allocating %d bytes of internal memory in %s at 0x%8p\n", newSize, __func__, temp);
+	  memcpy(temp, pbuf->data, pbuf->curSize);
+	  free(pbuf->data);
+	  //fprintf(stderr, "[+] freeing internal memory in %s at 0x%8p\n", __func__, pbuf->data);
+	  pbuf->maxSize = newSize;
+	  pbuf->data = temp;
   }
-  else                // grow the buffer by growSize
-  {
-	int32_t newSize = pbuf->maxSize + growSize;
-	char* temp = calloc(1, newSize);
-	fprintclf(stderr, "[+] allocating %d bytes of internal memory ot 0x%8p\n", newSize, temp);
-	memcpy(temp, pbuf->data, pbuf->curSize);
-	free(pbuf->data);
-	fprintf(stderr, "[+] freeing internal memory at 0x%8p\n", pbuf->data);
-	pbuf->maxSize = newSize;
-	pbuf->data = temp;
-  }
+  
+  pbuf->data[pbuf->curSize] = ch;
+	pbuf->curSize++; 
 }
 
 
