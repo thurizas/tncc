@@ -20,7 +20,49 @@ static const uint8_t PATCH = 0;
 enum
 {
 	ERR_LEX_FAILED = 1,
-	ERR_PARSE_FAILED
+	ERR_LEX_FNOTFOUND,
+	ERR_LEX_MEMORY,
+	ERR_PARSE_FAILED,
+	ERR_MEMORY
+};
+
+enum
+{
+	TOKEN_TYPE_RPAREN,
+	TOKEN_TYPE_LPAREN,
+	TOKEN_TYPE_RBRACKET,
+	TOKEN_TYPE_LBRACKET,
+	TOKEN_TYPE_RCURLYB,
+	TOKEN_TYPE_LCURLYB,
+
+	TOKEN_TYPE_COLON,
+	TOKEN_TYPE_SEMICOLON,
+	TOKEN_TYPE_COMMA,
+
+	TOKEN_TYPE_ID,
+	TOKEN_TYPE_INT,
+	TOKEN_TYPE_FLOAT,
+	TOKEN_TYPE_STRING
+};
+
+struct pos
+{
+	int line;
+	int col;
+};
+
+struct token
+{
+	int        type;
+	struct pos pos;
+
+	union
+	{
+		char    cVal;
+		int     iVal;
+		float   fVal;
+		char*   sVal;
+	};
 };
 
 #endif

@@ -14,8 +14,18 @@ struct vector
 
 void vec_init(struct vec** v)
 {
-  (*v)->head = NULL;
-  (*v)->tail = NULL;
+
+  if (*v != NULL)
+  {
+	vec_free(*v);
+	free(*v);
+  }
+
+  if (NULL != (*v = malloc(sizeof(struct vector))))
+  {
+	(*v)->head = NULL;
+	(*v)->tail = NULL;
+  }
 }
 
 void vec_free(struct vec* v)
@@ -34,7 +44,7 @@ void vec_free(struct vec* v)
   free(v);
 }
 
-void vec_append(struct vec* v, void* data)
+void vec_push(struct vec* v, void* data)
 {
   if((v->head == NULL) && (v->tail == NULL))
   {
@@ -61,7 +71,7 @@ void vec_append(struct vec* v, void* data)
 }
 
 
-void vec_print(struct vec* v)
+void vec_print(struct vec* v, void (*ptr)(void*))
 {
   if((v->head != NULL) && (v->tail != NULL))
   {
@@ -70,7 +80,8 @@ void vec_print(struct vec* v)
 	{
 	  if(t->data != NULL)
 	  {
-		fprintf(stderr, "%c ->", *((char*)(t->data)) );
+		ptr(t->data);
+		fprintf(stdout, " ->");
 		t = t->flink;
 	  }
 	} while(t != NULL);

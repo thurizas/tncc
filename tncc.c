@@ -1,14 +1,18 @@
-#include <unistd.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <memory.h>
 
-
+#ifdef __WIN32
+#include "XGetopt.h"
+#else
+#include <unistd.h>
 extern int getopt(int, char**, const char*);
 extern char* optarg;
 extern int optind;
+#endif
 
 
 #include "common.h"
@@ -27,6 +31,10 @@ int main(int argc, char** argv)
   char* outName = NULL;
   char* inName = NULL;
 
+  for (int ndx = 0; ndx < argc; ndx++)
+  {
+	  fprintf(stdout, "argument[%d]: %s\n", ndx, argv[ndx]);
+  }
 
   while(-1 != (choice = getopt(argc, argv, "dhvo:s:")))
   {
@@ -39,10 +47,17 @@ int main(int argc, char** argv)
 	  case 'o':
 		if(outName != NULL) free(outName);
 
-		outName = malloc(sizeof(char)*strlen(optarg) + 1);
-		memset((void*)outName, '\0', strlen(optarg) + 1);
-
-		strcpy(outName, optarg);
+		if (NULL != (outName = malloc(sizeof(char) * strlen(optarg) + 1)))
+		{
+			memset((void*)outName, '\0', strlen(optarg) + 1);
+			strcpy(outName, optarg);
+		}
+		else
+		{
+			fprintf(stderr, "[-] memory allocation error, failed to allocate space for output file name");
+			res = -1;
+			goto EXIT;
+		}
 		break;
 
 	  case 's':
@@ -77,20 +92,42 @@ int main(int argc, char** argv)
   // if no output name is given use default name
   if(outName == NULL)
   {
-	outName = malloc(sizeof(char)*(strlen(DEFNAME)+1));
-	memset((void*)outName, '\0', strlen(DEFNAME)+1);
-	memcpy(outName, DEFNAME, strlen(DEFNAME));
+	  if (NULL != (outName = malloc(sizeof(char) * (strlen(DEFNAME) + 1))))
+	  {
+		memset((void*)outName, '\0', strlen(DEFNAME)+1);
+		memcpy(outName, DEFNAME, strlen(DEFNAME));
+	  }
+	  else
+	  {
+		  fprintf(stderr, "[-] memory allocation error, failed to allocate memory for output file name\n");
+		  res = -1;
+		  goto EXIT;
+	  }
+
   }
 
   // get input file name....
-  int32_t len = strlen(argv[optind]);
-  inName = malloc(sizeof(char)*(len+1));
-  memset((void*)inName, '\0', (len+1));
-  memcpy(inName, argv[optind], len);
+  size_t len = strlen(argv[optind]);
+  if (NULL != (inName = malloc(sizeof(char) * (len + 1))))
+  {
+	memset((void*)inName, '\0', (len+1));
+	memcpy(inName, argv[optind], len);
+  }
+  else
+  {
+	  fprintf(stderr, "[-] memory allocation error, failed to allocate memory for input file name");
+	  res = -1;
+	  goto EXIT;
+  }
+
 
   if(lexer_init(inName, flags))
   {
-	lexer_lex();
+	if (lexer_lex())
+	{
+		// TODO : print out tokens vector
+		// TODO : parse here
+	}
 	
 	lexer_deinit();
   }
@@ -100,6 +137,7 @@ int main(int argc, char** argv)
 	res = ERR_LEX_FAILED;
   }
 
+EXIT:
   if(inName != NULL) free(inName);
   if(outName != NULL) free(outName);
   

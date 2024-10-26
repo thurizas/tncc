@@ -10,7 +10,9 @@
 bool lexer_init(const char*, uint8_t);
 void lexer_deinit();
 
-void lexer_lex();
+bool lexer_lex();
+
+void tok_print(void*);                 // TODO : should this be here???
 
 
 

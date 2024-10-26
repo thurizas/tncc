@@ -21,6 +21,8 @@ char buf_pop(struct buffer*);
 
 char buf_at(struct buffer*, uint32_t);
 
+char* buf_data(struct buffer*);
+
 void buf_print(struct buffer*);
 
 
