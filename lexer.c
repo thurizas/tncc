@@ -168,218 +168,256 @@ bool lexer_lex()
 	*/
 	for (uint32_t ndx = 0; ndx < cntChars; ndx++)
 	{
-		char ch = buf_at(buf, ndx);
-		switch (ch)
+	  char ch = buf_at(buf, ndx);
+	  col += 1;
+	  switch (ch)
+	  {
+		case '\n':
+		  line += 1;
+		  col = 1;
+		  break;
+
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
 		{
-		    case '\n':
-				line += 1;
-				col = 1;
-				break;
+		  struct buffer* temp = NULL;
+		  buf_init(&temp);
+		  buf_append(temp, ch);            
+		  
+		  while ((ndx+1 < cntChars) && isdigit(buf_at(buf, ndx + 1)))
+		  {
+			ndx += 1;
+			ch = buf_at(buf, ndx);
+			buf_append(temp, ch);
+			col += 1;
+		  }
 
-			case '0':
-			case '1':
-			case '2':
-			case '3':
-			case '4':
-			case '5':
-			case '6':
-			case '7':
-			case '8':
-			case '9':
-			{
-				struct buffer* temp = NULL;
-				buf_init(&temp);
-				buf_append(temp, ch);            
+		  struct token* t = NULL;
+		  if (NULL != (t = malloc(sizeof(struct token))))
+		  {
+			t->type = TOKEN_TYPE_INT;
+			t->pos.line = line;
+			t->pos.col = col;
+			t->iVal = atoi(buf_data(temp));
+			vec_push(tokens, t);
+		  }
+		  else
+		  {
+			exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
+		  }
 
-				while ((ndx+1 < cntChars) && isdigit(buf_at(buf, ndx + 1)))
-				{
-					ndx += 1;
-					ch = buf_at(buf, ndx);
-					buf_append(temp, ch);
-					col += 1;
-				}
-
-				struct token* t = NULL;
-				if (NULL != (t = malloc(sizeof(struct token))))
-				{
-					t->type = TOKEN_TYPE_INT;
-					t->pos.line = line;
-					t->pos.col = col;
-					t->iVal = atoi(buf_data(temp));
-					vec_push(tokens, t);
-				}
-				else
-				{
-					exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
-				}
-
-				buf_free(&temp);
-			}
-			break;
-
-
-			case '(':
-			{
-				struct token* token = NULL;
-				if (NULL != (token = malloc(sizeof(struct token))))
-				{
-					token->pos.line = line;
-					token->pos.col = col;
-					token->type = TOKEN_TYPE_LPAREN;
-					token->cVal = '(';
-					vec_push(tokens, token);
-				}
-				else
-				{
-					exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
-				}
-			}
-			break;
-
-			case ')' :
-			{
-				struct token* token = NULL;
-				if(NULL != (token = malloc(sizeof(struct token))))
-				{
-					token->pos.line = line;
-					token->pos.col = col;
-					token->type = TOKEN_TYPE_RPAREN;
-					token->cVal = ')';
-					vec_push(tokens, token);
-				}
-				else
-				{
-					exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
-				}
-			}
-			break;
-
-			case '{':
-			{
-				struct token* token = NULL;
-				if (NULL != (token = malloc(sizeof(struct token))))
-				{
-					token->pos.line = line;
-					token->pos.col = col;
-					token->type = TOKEN_TYPE_LCURLYB;
-					token->cVal = '{';
-					vec_push(tokens, token);
-				}
-				else
-				{
-					exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
-				}
-			}
-			break;
-
-			case '}':
-			{
-				struct token* token = NULL;
-				if (NULL != (token = malloc(sizeof(struct token))))
-				{
-					token->pos.line = line;
-					token->pos.col = col;
-					token->type = TOKEN_TYPE_RCURLYB;
-					token->cVal = '}';
-					vec_push(tokens, token);
-				}
-				else
-				{
-					exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
-				}
-			}
-
-			case ';':
-			{
-				struct token* t = NULL;
-				if (NULL != (t = malloc(sizeof(struct token))))
-				{
-					t->type = TOKEN_TYPE_SEMICOLON;
-					t->pos.line = line;
-					t->pos.col = col;
-					t->cVal = ';';
-					vec_push(tokens, t);
-				}
-				else
-				{
-					exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
-				}
-			}
-			break;
-
-			case '_':                          // start of an identifier
-			case 'a':                          // identifer start with a letter or underscore
-			case 'b':
-			case 'c':
-			case 'd':
-			case 'e':
-			case 'f':
-			case 'g':
-			case 'h':
-			case 'i':
-			case 'j':
-			case 'k':
-			case 'l':
-			case 'm':
-			case 'n':
-			case 'o':
-			case 'p':
-			case 'q':
-			case 'r':
-			case 's':
-			case 't':
-			case 'u':
-			case 'v':
-			case 'w':
-			case 'x':
-			case 'y':
-			case 'z':   
-			{				
-				struct buffer* temp = NULL;
-				uint32_t start = col;
-				buf_init(&temp);
-
-				buf_append(temp, ch);               // append first letter
-
-				while ((ndx+1 < cntChars) && isValidIdentifier(buf_at(buf, ndx+1)))
-				{
-					ndx += 1;                      // increment counter
-					ch = buf_at(buf, ndx);
-					buf_append(temp, ch);
-					col += 1;
-				}
-			
-				struct token* t = NULL;
-				if (NULL != (t = malloc(sizeof(struct token))))
-				{
-					t->type = TOKEN_TYPE_ID;
-					t->pos.line = line;
-					t->pos.col = start;
-					t->sVal = malloc((buf_len(temp) + 1) * sizeof(char));
-					memset((void*)t->sVal, '\0', buf_len(temp) + 1);
-					memcpy(t->sVal, buf_data(temp), buf_len(temp));
-					vec_push(tokens, t);
-				}
-				else
-				{
-					exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
-				}
-
-				buf_free(&temp);
-			}
-			break;
-
-			case ' ':
-				;
-				break;
-
-			default:
-				fprintf(stderr, "[?] unknown glyph: %c(%d)\n", ch, (int)ch);
-				break;
+		  buf_free(&temp);
 		}
+		break;
 
+		case '(':
+		{
+		  struct token* token = NULL;
+		  if (NULL != (token = malloc(sizeof(struct token))))
+		  {
+			token->pos.line = line;
+			token->pos.col = col;
+			token->type = TOKEN_TYPE_LPAREN;
+			token->cVal = '(';
+			vec_push(tokens, token);
+		  }
+		  else
+		  {
+			exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
+		  }
+		}
+		break;
+
+		case ')' :
+		{
+		  struct token* token = NULL;
+		  if(NULL != (token = malloc(sizeof(struct token))))
+		  {
+			token->pos.line = line;
+			token->pos.col = col;
+			token->type = TOKEN_TYPE_RPAREN;
+			token->cVal = ')';
+			vec_push(tokens, token);
+		  }
+		  else
+		  {
+			exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
+		  }
+		}
+		break;
+		
+		case '{':
+		{
+		  struct token* token = NULL;
+		  if (NULL != (token = malloc(sizeof(struct token))))
+		  {
+			token->pos.line = line;
+			token->pos.col = col;
+			token->type = TOKEN_TYPE_LCURLYB;
+			token->cVal = '{';
+			vec_push(tokens, token);
+		  }
+		  else
+		  {
+			exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
+		  }
+		}
+		break;
+
+		case '}':
+		{
+		  struct token* token = NULL;
+		  if (NULL != (token = malloc(sizeof(struct token))))
+		  {
+			token->pos.line = line;
+			token->pos.col = col;
+			token->type = TOKEN_TYPE_RCURLYB;
+			token->cVal = '}';
+			vec_push(tokens, token);
+		  }
+		  else
+		  {
+			exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
+		  }
+		}
+		break;
+		
+		case ';':
+		{
+		  struct token* t = NULL;
+		  if (NULL != (t = malloc(sizeof(struct token))))
+		  {
+			t->type = TOKEN_TYPE_SEMICOLON;
+			t->pos.line = line;
+			t->pos.col = col;
+			t->cVal = ';';
+			vec_push(tokens, t);
+		  }
+		  else
+		  {
+			exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
+		  }
+		}
+		break;
+
+		case '*':         // TODO : need to differentiate between 3*5 (mult) and int* (type)
+		{
+		  struct token* t = NULL;
+		  if (NULL != (t = malloc(sizeof(struct token))))
+		  {
+			t->type = TOKEN_TYPE_ASTERISK;
+			t->pos.line = line;
+			t->pos.col = col;
+			t->cVal = '*';
+			vec_push(tokens, t);
+		  }
+		  else
+		  {
+			exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
+		  }
+		}
+		break;
+
+		case ',':
+		{
+		  struct token* t = NULL;
+		  if (NULL != (t = malloc(sizeof(struct token))))
+		  {
+			t->type = TOKEN_TYPE_COMMA;
+			t->pos.line = line;
+			t->pos.col = col;
+			t->cVal = ',';
+			vec_push(tokens, t);
+		  }
+		  else
+		  {
+			exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
+		  }
+		}
+		break;
+		
+
+		case '_':                          // start of an identifier
+		case 'a':                          // identifer start with a letter or underscore
+		case 'b':
+		case 'c':
+		case 'd':
+		case 'e':
+		case 'f':
+		case 'g':
+		case 'h':
+		case 'i':
+		case 'j':
+		case 'k':
+		case 'l':
+		case 'm':
+		case 'n':
+		case 'o':
+		case 'p':
+		case 'q':
+		case 'r':
+		case 's':
+		case 't':
+		case 'u':
+		case 'v':
+		case 'w':
+		case 'x':
+		case 'y':
+		case 'z':   
+		{				
+		  struct buffer* temp = NULL;
+		  uint32_t start = col;
+		  buf_init(&temp);
+		  
+		  buf_append(temp, ch);               // append first letter
+		  
+		  while ((ndx+1 < cntChars) && isValidIdentifier(buf_at(buf, ndx+1)))
+		  {
+			ndx += 1;                      // increment counter
+			ch = buf_at(buf, ndx);
+			buf_append(temp, ch);
+			col += 1;
+		  }
+		  
+		  struct token* t = NULL;
+		  if (NULL != (t = malloc(sizeof(struct token))))
+		  {
+			t->type = TOKEN_TYPE_ID;
+			t->pos.line = line;
+			t->pos.col = start;
+			t->sVal = malloc((buf_len(temp) + 1) * sizeof(char));
+			memset((void*)t->sVal, '\0', buf_len(temp) + 1);
+			memcpy(t->sVal, buf_data(temp), buf_len(temp));
+			vec_push(tokens, t);
+		  }
+		  else
+		  {
+			exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
+		  }
+		  
+		  buf_free(&temp);
+		}
+		break;
+		
+		case ' ':
+		  ;
+		  break;
+		  
+		default:
+		  fprintf(stderr, "[?] unknown glyph: %c(%d)at line %d, column %d\n", ch, (int)ch, line, col);
+		  break;
+	  }
+	  
 	}
-
+	
     vec_print(tokens, tok_print);
 	return true;
 	

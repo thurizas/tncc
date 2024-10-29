@@ -6,7 +6,7 @@ LKFLAGS=
 
 PROJ=tncc
 
-OBJS=tncc.o lexer.o vector.o buffer.o
+OBJS=tncc.o lexer.o vector.o buffer.o util.o
 
 $(PROJ) : $(OBJS)
 	$(LK) $(LKFLAGS) $(OBJS) -o $(PROJ)
@@ -24,6 +24,9 @@ vector.o : vector.c vector.h
 
 buffer.o : buffer.c buffer.h
 	$(CC) -c $(CCFLAGS) buffer.c -o buffer.o
+
+util.o : util.c util.h
+	$(CC) -c $(CCFLAGS) util.c -o util.o
 
 vector_test : vector_test.c vector.o
 	$(CC) $(CCFLAGS) vector.o vector_test.c -o vector_test
