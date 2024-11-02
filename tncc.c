@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 	  case 'o':
 		if(outName != NULL) free(outName);
 
-		if (NULL != (outName = malloc(sizeof(char) * strlen(optarg) + 1)))
+		if (NULL != (outName = malloc(sizeof(char) * (strlen(optarg) + 1))))
 		{
 			memset((void*)outName, '\0', strlen(optarg) + 1);
 			strcpy(outName, optarg);
