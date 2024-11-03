@@ -1,6 +1,8 @@
 #ifndef _common_h_
 #define _common_h_
 
+#include <stdint.h>
+
 static const uint8_t FLAGS_DEBUG   = 0x01;
 static const uint8_t FLAGS_LEX     = 0x02;
 static const uint8_t FLAGS_PAR     = 0x04;
@@ -42,10 +44,15 @@ enum
 	TOKEN_TYPE_ASTERISK,
 
 	TOKEN_TYPE_ID,
+	TOKEN_TYPE_KEYWORD,
+	TOKEN_TYPE_TYPE,
 	TOKEN_TYPE_INT,
 	TOKEN_TYPE_FLOAT,
 	TOKEN_TYPE_STRING
 };
+
+static const char* types[] = { "void", "char", "short", "int", "long", "float", "double" };
+static const char* keywords[] = { "return" };
 
 struct pos
 {

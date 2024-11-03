@@ -20,6 +20,9 @@ static FILE* fp = NULL;
 static struct buffer* buf = NULL;                // buffer to hold preprocessed file
 static struct vec* tokens = NULL;                // vector to hold all the tokens
 
+//extern void tok_print(void*);
+static bool lexer_isType(struct buffer*);
+static bool lexer_isKeywork(struct buffer*);
 
 bool lexer_init(const char* name, uint8_t flags)
 {
@@ -143,6 +146,11 @@ void lexer_deinit()
   buf_free(&buf);
 }
 
+struct vec* lexer_getTokens()
+{
+	return tokens;
+}
+
 // at this point the input file has been read into an interal buffer (struct buffer buf) and has been preprocessed 
 // so (1) tabs have been replaced with a single space, (2) sequences of spaces have been compressed to a single 
 // space, (3) that comments have been removed, (4) multiple lines ending with a line-continuation character have 
@@ -157,15 +165,6 @@ bool lexer_lex()
 
 	uint32_t cntChars = buf_len(buf);
 
-	/*
-	the file 
-	int main(void)
-	{
-	    return 2;
-	}
-	                            "012345678901234 56 7890123456 78 
-	is converted to the buffer: "int main(void)\n{\nreturn 2;\n}\n"
-	*/
 	for (uint32_t ndx = 0; ndx < cntChars; ndx++)
 	{
 	  char ch = buf_at(buf, ndx);
@@ -344,7 +343,7 @@ bool lexer_lex()
 		}
 		break;
 		
-
+		// TODO : remember to handle capitol letters....
 		case '_':                          // start of an identifier
 		case 'a':                          // identifer start with a letter or underscore
 		case 'b':
@@ -396,6 +395,10 @@ bool lexer_lex()
 			t->sVal = malloc((buf_len(temp) + 1) * sizeof(char));
 			memset((void*)t->sVal, '\0', buf_len(temp) + 1);
 			memcpy(t->sVal, buf_data(temp), buf_len(temp));
+			
+			if (lexer_isType(temp)) { t->type = TOKEN_TYPE_TYPE;  }
+			if (lexer_isKeywork(temp)) { t->type = TOKEN_TYPE_KEYWORD; }
+
 			vec_push(tokens, t);
 		  }
 		  else
@@ -417,23 +420,42 @@ bool lexer_lex()
 	  }
 	  
 	}
-	
-    vec_print(tokens, tok_print);
-	return true;
-	
+
+	return true;	
 }
 
-void tok_print(void* data)
+
+static bool lexer_isType(struct buffer* token)
 {
-	struct token* t = (struct token*)data;
+	bool res = false;
 
-	fprintf(stdout, "{ token type: %i, pos: (%i, %i), value:", t->type, t->pos.line, t->pos.col);
-	if (t->type == TOKEN_TYPE_INT) fprintf(stdout, "%d", t->iVal);
-	else if (t->type == TOKEN_TYPE_ID) fprintf(stdout, "%s", t->sVal);
-	else fprintf(stdout, "%c", t->cVal);
-	fprintf(stdout, "  }\n");
+	uint32_t cntTypes = sizeof(types) / sizeof(types[0]);
+	for (uint32_t ndx = 0; ndx < cntTypes; ndx++)
+	{
+		if (strcmp(types[ndx], buf_data(token)) == 0)
+		{
+			res = true;
+			break;
+		}
+	}
 
-
+	return res;
 }
 
 
+static bool lexer_isKeywork(struct buffer* token)
+{
+	bool res = false;
+
+	uint32_t cntKeywords = sizeof(keywords) / sizeof(keywords[0]);
+	for (uint32_t ndx = 0; ndx < cntKeywords; ndx++)
+	{
+		if (strcmp(keywords[ndx], buf_data(token)) == 0)
+		{
+			res = true;
+			break;
+		}
+	}
+
+	return res;
+}

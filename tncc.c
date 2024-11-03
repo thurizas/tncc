@@ -16,7 +16,9 @@ extern int optind;
 
 
 #include "common.h"
+#include "token.h"
 #include "lexer.h"
+#include "parser.h"
 
 static const char* DEFNAME = "a.out";
 
@@ -125,10 +127,30 @@ int main(int argc, char** argv)
   {
 	if (lexer_lex())
 	{
-		// TODO : print out tokens vector
-		// TODO : parse here
+		struct vec* tokens = lexer_getTokens();
+		vec_print(tokens, tok_print);                                         // print out tokens vector
+		
+		// check to see if we are required to parse, and if parser is initialized
+		if (((flags & FLAGS_PAR) == FLAGS_PAR) && parser_init(tokens, flags))   
+		{
+			if (parser_parse())
+			{
+				// TODO: perform conversion of AST to IR representation
+				// TODO: perform conversion of IR to asm represnetation
+				// TODO: perform code emittion (i.e. asm to elf file)
+			}
+
+			parser_deinit();
+		}
+		else
+		{
+			fprintf(stderr, "[-] failed to parse %s\n", inName);
+		}
+
+		tokens_clear(tokens);                                                 // destory vector of tokens
 	}
 	
+                                                     
 	lexer_deinit();
   }
   else
