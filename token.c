@@ -28,10 +28,3 @@ char* getTokenName(struct token* tok)
 		return NULL;
 }
 
-//  This function clears the token buffer, deleting each token in the buffer.  
-//  The actual buffer is destroyed in lexer_deinit().
-void tokens_clear(struct vec* tokens)
-{
-
-
-}

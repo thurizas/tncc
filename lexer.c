@@ -15,6 +15,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+static const char* types[] = { "void", "char", "short", "int", "long", "float", "double" };
+static const char* keywords[] = { "return" };
 
 static FILE* fp = NULL;
 static struct buffer* buf = NULL;                // buffer to hold preprocessed file
@@ -157,7 +159,7 @@ struct vec* lexer_getTokens()
 // been converted into a single line.
 bool lexer_lex()
 {
-	bool  res = false;
+	bool  res = true;
 	static uint32_t line = 1;
 	static uint32_t col = 1;
 
@@ -416,12 +418,13 @@ bool lexer_lex()
 		  
 		default:
 		  fprintf(stderr, "[?] unknown glyph: %c(%d)at line %d, column %d\n", ch, (int)ch, line, col);
+		  res = false;
 		  break;
 	  }
 	  
 	}
 
-	return true;	
+	return res;	
 }
 
 

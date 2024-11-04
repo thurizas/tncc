@@ -3,8 +3,7 @@
 
 
 
-void tok_print(void*);  
-void tokens_clear(struct vec*);
+void tok_print(void*); 
 
 char* getTokenName(struct token*);
 

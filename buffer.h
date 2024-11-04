@@ -6,8 +6,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-struct buffer;
+//struct buffer;
+struct buffer
+{
+  uint32_t maxSize;
+  uint32_t curSize;
+  uint32_t peekPtr;
 
+  char*    data;
+};
 void buf_init(struct buffer**);
 void buf_free(struct buffer**);
 
@@ -19,7 +26,7 @@ void buf_append(struct buffer*, char);
 char buf_peek(struct buffer*);
 char buf_pop(struct buffer*);
 
-char buf_at(struct buffer*, uint32_t);
+char buf_at(struct buffer*, int);
 
 char* buf_data(struct buffer*);
 

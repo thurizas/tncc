@@ -51,8 +51,7 @@ enum
 	TOKEN_TYPE_STRING
 };
 
-static const char* types[] = { "void", "char", "short", "int", "long", "float", "double" };
-static const char* keywords[] = { "return" };
+
 
 struct pos
 {

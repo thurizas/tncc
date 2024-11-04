@@ -12,8 +12,8 @@ void lexer_deinit();
 
 bool lexer_lex();
 
-void tok_print(void*);                 // TODO : should this be here???
-
+void tok_print(void*);  
+struct vec* lexer_getTokens();
 
 
 #endif

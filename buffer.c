@@ -11,15 +11,6 @@
 static const uint32_t initSize = 50;
 static const float_t  growPoint = 0.75;
 
-struct buffer
-{
-  uint32_t maxSize;
-  uint32_t curSize;
-  uint32_t peekPtr;
-
-  char*    data;
-};
-
 
 void buf_init(struct buffer** ppBuf)
 {
@@ -116,11 +107,11 @@ char buf_pop(struct buffer* pbuf)
   return ch;
 }
 
-char buf_at(struct buffer* pbuf, uint32_t loc)
+char buf_at(struct buffer* pbuf, int loc)
 {
   char ch=0x00;
 
-  if((loc >= 0) && (loc < pbuf->curSize))
+  if((loc >= 0) && (loc < (int)pbuf->curSize))
   {
 	ch = pbuf->data[loc];
   }

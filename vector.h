@@ -29,5 +29,6 @@ void vec_push(struct vec*, void*);
 
 void vec_print(struct vec*, void (*ptr)(void*));
 
+void tokens_clear(struct vec*);
 
 #endif

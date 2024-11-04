@@ -1,4 +1,6 @@
 #include "vector.h"
+#include "common.h"
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +23,7 @@ void vec_init(struct vec** v)
 	free(*v);
   }
 
-  if (NULL != (*v = malloc(sizeof(struct node))))
+  if (NULL != (*v = malloc(sizeof(struct vec))))
   {
 	(*v)->head = NULL;
 	(*v)->tail = NULL;
@@ -136,5 +138,30 @@ void vec_print(struct vec* v, void (*ptr)(void*))
   else
   {
 	fprintf(stderr, "[+] list is empty\n");
+  }
+}
+
+//  This function clears the token buffer, deleting each token in the buffer.  
+//  The actual buffer is destroyed in lexer_deinit().
+void tokens_clear(struct vec* tokens)
+{
+  struct node*    node;
+  if(tokens->cntItems > 0)
+  {
+	node = tokens->head;
+
+	while(NULL != node)
+	{
+	  struct token* t = (struct token*)node->data;
+
+	  // do we have a sVal to get rid of
+	  if((t->type == TOKEN_TYPE_ID) || (t->type == TOKEN_TYPE_KEYWORD) ||
+		 (t->type == TOKEN_TYPE_TYPE) || (t->type == TOKEN_TYPE_STRING))
+	  {
+		free(t->sVal);
+	  }
+
+	  node = node->flink;
+	}
   }
 }

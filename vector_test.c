@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+void printChar(void*);
 
 int main(int argc, char** argv)
 {
@@ -12,19 +13,19 @@ int main(int argc, char** argv)
   {
 	vec_init(&chars);
 
-	vec_print(chars);
+	vec_print(chars, printChar);
 
 	for(int ndx = 0; ndx < 10; ndx++)
 	{
 	  char* temp = malloc(sizeof(char));
 	  *temp = 'A' + ndx;
-	  vec_append(chars, temp);
+	  vec_push(chars, temp);
 	}
 	
 
-	vec_print(chars);
+	vec_print(chars, printChar);
 
-	vec_free(chars);
+	//vec_free(chars);
 
   }
   else
@@ -33,4 +34,10 @@ int main(int argc, char** argv)
   }
 
   return 0;
+}
+
+
+void printChar(void* data)
+{
+
 }

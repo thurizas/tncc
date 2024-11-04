@@ -5,7 +5,7 @@
 
 #include <stdbool.h>
 
-bool parser_init(struct vec*, uint8_t);
+//bool parser_init(struct vec*, uint8_t);
 void parser_deinit();
 bool parser_parse();
 bool parser_statement();
