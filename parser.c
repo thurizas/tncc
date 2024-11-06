@@ -50,29 +50,31 @@ produces the following stream of tokens,
 #include <stdbool.h>
 #include <string.h>
 
+#include <stdarg.h>
+
 static struct vec* tokens;                     // vector of tokens we are working with
 static uint32_t flags;                         // flags controlling operation
 
 static void parse_program();
-static bool parser_expect(uint32_t, const char*, struct vec*);
+static bool parser_expect(int, const char*, struct vec*);
 
-bool parser_init(struct vec* toks, uint8_t f)
-{
-    bool res = true;
-    flags = f;
+bool parser_init(struct vec* toks, uint8_t f) 
+{ 
+  bool res = true; 
+  flags = f; 
 
-    if (NULL != toks)
-    {
-        tokens = toks;
-    }
-    else
-    {
-        fprintf(stderr, "[-] Lexer produced no tokens, nothing to do.\n");
-        res = false;
-    }
+  if (NULL != toks) 
+  { 
+	tokens = toks; 
+  } 
+  else 
+  { 
+	fprintf(stderr, "[-] Lexer produced no tokens, nothing to do.\n"); 
+	res = false; 
+  } 
 
-    return res;
-}
+  return res; 
+} 
 
 void parser_deinit()
 {
@@ -118,14 +120,14 @@ static void parse_program()
    name -- name of the type (can be NULL if the expected type is a punctuation
    tokens -- vector of tokens
 */
-static bool parser_expect(uint32_t type, const char* name, struct vec* tokens)
+static bool parser_expect(int type, const char* name, struct vec* tokens)
 {
     bool res = false;
 
     struct token* t = vec_peekCurrent(tokens);            // peek at current token
     tok_print((void*)t);
 
-    //// check if token type is same a expected type, and if name if provided that token name matches
+    // check if token type is same a expected type, and if name if provided that token name matches
     if ((t->type == type) && (name != NULL ? strcmp(name, getTokenName(t)) == 0 : true))
     {
         res = true;
@@ -144,6 +146,14 @@ bool parser_statement()
 
 void parser_error(const char* fmt, ...)
 {
+  char  buf[1024];
+  
+  va_list args;
+  va_start(args, fmt);
 
-
+  vsprintf(buf, fmt, args);
+  va_end(args);
+  
+  fprintf(stderr, "[-] parser error: %s\n", buf);
+  exit(ERR_PARSE_FAILED);
 }

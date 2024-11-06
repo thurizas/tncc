@@ -8,6 +8,13 @@ PROJ=tncc
 
 OBJS=tncc.o token.o lexer.o parser.o vector.o buffer.o util.o
 
+# may need to install the packages
+# libasan, libasan-debuginfo, and libasan-static
+ifeq ($(mode),checked)
+	CCFLAGS += -fsanitize=address
+	LKFLAGS += -fsanitize=address -static-libasan
+endif
+
 $(PROJ) : $(OBJS)
 	$(LK) $(LKFLAGS) $(OBJS) -o $(PROJ)
 
