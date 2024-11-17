@@ -128,6 +128,7 @@ int main(int argc, char** argv)
 	if (lexer_lex())
 	{
 		struct vec* tokens = lexer_getTokens();
+		fprintf(stdout, "\n******************** lexer output ********************\n");
 		vec_print(tokens, tok_print);                                         // print out tokens vector
 		
 		// check to see if we are required to parse, and if parser is initialized

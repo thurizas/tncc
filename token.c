@@ -8,15 +8,18 @@
 
 void tok_print(void* data)
 {
-	struct token* t = (struct token*)data;
+	if (NULL != data)
+	{
+		struct token* t = (struct token*)data;
 
-	fprintf(stdout, "{ token type: %i, pos: (%i, %i), value:", t->type, t->pos.line, t->pos.col);
-	if (t->type == TOKEN_TYPE_INT) fprintf(stdout, "%d", t->iVal);
-	else if (t->type == TOKEN_TYPE_TYPE) fprintf(stdout, "%s", t->sVal);
-	else if (t->type == TOKEN_TYPE_KEYWORD) fprintf(stdout, "%s", t->sVal);
-	else if (t->type == TOKEN_TYPE_ID) fprintf(stdout, "%s", t->sVal);
-	else fprintf(stdout, "%c", t->cVal);
-	fprintf(stdout, "  }\n");
+		fprintf(stdout, "{ token type: %i, pos: (%i, %i), value:", t->type, t->pos.line, t->pos.col);
+		if (t->type == TOKEN_TYPE_INT) fprintf(stdout, "%d", t->iVal);
+		else if (t->type == TOKEN_TYPE_TYPE) fprintf(stdout, "%s", t->sVal);
+		else if (t->type == TOKEN_TYPE_KEYWORD) fprintf(stdout, "%s", t->sVal);
+		else if (t->type == TOKEN_TYPE_ID) fprintf(stdout, "%s", t->sVal);
+		else fprintf(stdout, "%c", t->cVal);
+		fprintf(stdout, "  }\n");
+	}
 }
 
 

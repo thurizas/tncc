@@ -22,7 +22,6 @@ static FILE* fp = NULL;
 static struct buffer* buf = NULL;                // buffer to hold preprocessed file
 static struct vec* tokens = NULL;                // vector to hold all the tokens
 
-//extern void tok_print(void*);
 static bool lexer_isType(struct buffer*);
 static bool lexer_isKeywork(struct buffer*);
 

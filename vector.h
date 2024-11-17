@@ -20,7 +20,7 @@ void vec_free(struct vec*);
 void vec_setCurrentNdx(struct vec*, int32_t);
 
 void* vec_peekCurrent(struct vec* v);     // peeks at current value, does not modify current index
-//void* vec_peek(struct vec* v);            // peeks at next value, does not change current index
+void* vec_getCurrent(struct vec* v);
 void vec_pop(struct vec* v);             // return current value, and move current index up one
 
 

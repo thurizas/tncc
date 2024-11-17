@@ -24,8 +24,10 @@ struct astNode
 	  const char* op;
 	} exp;
 
-	struct statement
+	struct stmt
 	{
+	  uint32_t type;
+
 	  struct returnStmt
 	  {
 		struct astNode* exp;
@@ -37,7 +39,7 @@ struct astNode
 		char* retType;
 		char* name;
 		struct vec* args;
-		struct vec* stmt;      // vector of AST for each expression in function
+		struct vec* stmts;      // vector of AST for each expression in function
 	} fnct;
 
 	struct prog
@@ -59,4 +61,5 @@ struct astNode
 
 
 struct astNode* astNode_create(struct astNode*);
+void astNode_print(struct astNode*, uint32_t);
 #endif

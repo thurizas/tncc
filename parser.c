@@ -1,45 +1,3 @@
-/*
-formal grammer:
-
-program ::= function
-function ::= "int" <identifier> "(" "void" ")" "{" <statements> "}"
-<statement> ::= "return" <exp> ";"
-<ext> ::= <int>
-<identifier> = ? An identifire token ?
-<int> ::= ? A constant token ?
-
-
-parse_statement(tokens) :
-  expect("return", tokens)
-  return_val = parse_exp(tokens)
-  expect(";", tokens)
-  return return_val
-
-expect(expected, tokens):
-  actual = take_token(tokens)
-  if actual != expected:
-    fail("syntax error)
-
-for example, the file test.c,
-int main(void)
-{
-  return 2;
-}
-
-produces the following stream of tokens,
-   { token type: 13, pos: (1, 2), value:int  }
- ->{ token type: 11, pos: (1, 6), value:main  }
- ->{ token type: 1, pos: (1, 10), value:(  }
- ->{ token type: 13, pos: (1, 11), value:void  }
- ->{ token type: 0, pos: (1, 15), value:)  }
- ->{ token type: 5, pos: (2, 2), value:{  }
- ->{ token type: 12, pos: (3, 2), value:return  }
- ->{ token type: 14, pos: (3, 9), value:2  }
- ->{ token type: 7, pos: (3, 10), value:;  }
- ->{ token type: 4, pos: (4, 2), value:}  }
- ->
-*/
-
 #include "common.h"
 #include "util.h"
 #include "token.h"
@@ -58,6 +16,8 @@ produces the following stream of tokens,
 static struct vec* tokens;                     // vector of tokens we are working with
 static uint32_t flags;                         // flags controlling operation
 
+static struct astNode* node = NULL;            // root of the AST
+                                               // this will be deleted when codeGen is done with it.
 
 static bool parser_expect(int, const char*, struct vec*);
 
@@ -122,7 +82,10 @@ static struct astNode* parse_statement(struct vec* ast)
     struct token* token = vec_peekCurrent(tokens);                      // get the command
 
     if ((token != NULL) && (token->type = TOKEN_TYPE_KEYWORD) && (strcmp(token->sVal, "return") == 0))
-    {
+    {        
+        struct astNode* node = astNode_create(&(struct astNode) { .type = AST_TYPE_STMT });
+        node->stmt.type = AST_STMT_TYPE_RETURN;
+
         vec_pop(tokens);                                               // eat 'return'
         struct astNode* expNode = parse_expression(NULL);
         if (!parser_expect(TOKEN_TYPE_SEMICOLON, NULL, tokens))
@@ -133,7 +96,6 @@ static struct astNode* parse_statement(struct vec* ast)
         
         vec_pop(tokens);                                              // eat semi-colon
 
-        struct astNode* node = astNode_create(&(struct astNode) { .type = AST_TYPE_STMT });
         node->stmt.returnStmt.exp = expNode;
 
         if (NULL != ast)
@@ -167,107 +129,141 @@ static bool parse_type_list(struct vec* tl)
 }
 
 //function :: = "int" < identifier > "(" "void" ")" "{" < statements > "}"
-static bool parse_function(struct vec* ast)
+static bool parse_function(struct astNode* fnctNode)
 {
     bool res = false;
     struct token* token = vec_peekCurrent(tokens);
-    struct astNode* node = NULL;
+    //./struct astNode* node = NULL;
 
-    if ((token != NULL) && (token->type == TOKEN_TYPE_TYPE))
+    struct vec* type_list = NULL;
+    vec_init(&type_list);
+
+    if (parse_type_list(type_list))
     {
-        char* fnctReturnType = token->sVal;
-        vec_pop(tokens);                                           // eat type
+        vec_pop(tokens);                                   
 
-        token = vec_peekCurrent(tokens);
-        if ((token != NULL) && (token->type == TOKEN_TYPE_ID))
+        if(parser_expect(TOKEN_TYPE_RPAREN, NULL, tokens))
         {
-            char* fnctName = token->sVal;
-            vec_pop(tokens);                                       // eat name 
+            vec_pop(tokens);                                   // eat ')'
+            fnctNode->fnct.args = type_list;
 
-            parser_expect(TOKEN_TYPE_LPAREN, NULL, tokens);
-            vec_pop(tokens);                                       // eat '('
-
-            struct vec* type_list = NULL;
-            vec_init(&type_list);
-
-
-            if (parse_type_list(type_list))
-            {
-                vec_pop(tokens);                                   // eat last read token
-
-                parser_expect(TOKEN_TYPE_RPAREN, NULL, tokens);    
-                vec_pop(tokens);                                   // eat ')'
-
-                node = astNode_create(&(struct astNode) { .type = AST_TYPE_FUNCTION });
-                node->fnct.retType = fnctReturnType;
-                node->fnct.name = fnctName;
-                node->fnct.args = type_list;
-
-                struct vec* stmt_list=NULL;
-                vec_init(&stmt_list);
+            struct vec* stmt_list=NULL;
+            vec_init(&stmt_list);
                 
-                do
-                {
-                    struct astNode* stmt = parse_statement(NULL);
-                    vec_push(stmt_list, stmt);
-
-                    token = vec_peekCurrent(tokens);
-                } while ((NULL != token) && (token->type != TOKEN_TYPE_RCURLYB));
-
-                vec_pop(tokens);                         // eat terminating semicolon
-                node->fnct.stmt = stmt_list;             // add vector if statements to function node
-
-                struct astNode* top = vec_peekCurrent(ast);
-                vec_push(top->prog.fncts, node);
-                
-                res = true;
-            }
-            else
+            do
             {
-                parserErrorAndExit("failed to parse argument list for function %s\n", fnctName);
-            }
+                struct astNode* stmt = parse_statement(NULL);
+                vec_push(stmt_list, stmt);
+
+                token = vec_peekCurrent(tokens);
+            } while ((NULL != token) && (token->type != TOKEN_TYPE_RCURLYB));
+
+            vec_pop(tokens);                         // eat terminating semicolon
+            fnctNode->fnct.stmts = stmt_list;         // add vector if statements to function node
+                
+            res = true;
         }
         else
         {
-            parserErrorAndExit("unexpected symbol at line %d, col %d\n", SAFE_LIN(token), SAFE_COL(token));
+            struct token* t = vec_peekCurrent(tokens);
+            parserErrorAndExit("expected ')' at line %d, col %d\n", SAFE_LIN(t), SAFE_COL(t));
+            }
         }
-    }
     else
     {
         parserErrorAndExit("unexpected symbol at line %d, col %d\n", SAFE_LIN(token), SAFE_COL(token));
     }
-
+ 
     return res;
 }
 
-// program ::= function
+// program ::= decl | fnct | typedef | struct |  union  | enum  
 static bool parse_program()
 {
     bool res = false;
+
+    node = astNode_create(&(struct astNode) { .type = AST_TYPE_PROGRAM });
+    vec_init(&node->prog.fncts);
     
-    struct vec* ast = NULL;
-    vec_init(&ast);
-
-    struct astNode* node = astNode_create(&(struct astNode) { .type = AST_TYPE_PROGRAM });
-    vec_push(ast, node);
-    vec_setCurrentNdx(ast, 0);
-
-    if (parse_function(ast))
+    while (true)
     {
-        printAST(ast);
+        struct token* t = vec_getCurrent(tokens);
 
-        struct token* t = vec_peekCurrent(tokens);
-        tok_print(t);
+        if ((t != NULL) && (t->type == TOKEN_TYPE_KEYWORD) && (strcmp("typedef", t->sVal) == 0))
+        {
+            // TODO - parse a typedef statement and add to AST
+            //parse_typedef();
+        }
+        else if ((t != NULL) && (t->type == TOKEN_TYPE_KEYWORD) && (strcmp("struct", t->sVal) == 0))
+        {
+            // TODO - parse a structure definition and add to AST
+            //parse_structure();
+        }
+        else if ((t != NULL) && (t->type == TOKEN_TYPE_KEYWORD) && (strcmp("union", t->sVal) == 0))
+        {
+            // TODO - parse an union definition and add to AST
+            //parse_union();
+        }
+        else if ((t != NULL) && (t->type == TOKEN_TYPE_KEYWORD) && (strcmp("enum", t->sVal) == 0))
+        {
+            // TODO - parse an enumeration definition and add to AST
+            //parse_enum();
+        }
+        else if ((t != NULL) && (t->type = TOKEN_TYPE_TYPE))
+        {
+            char* type = t->sVal;
+            char* name = NULL;
 
-        if (NULL == t)                       // reached end of token stream
+            if (parser_expect(TOKEN_TYPE_ID, NULL, tokens))
+            {
+                t = vec_getCurrent(tokens);
+                name = t->sVal;
+
+                if (parser_expect(TOKEN_TYPE_LPAREN, NULL, tokens))
+                {
+                    vec_pop(tokens);                               // eat left paranthesis
+                    struct astNode* fnctNode = astNode_create(&(struct astNode) { .type = AST_TYPE_FUNCTION, .flags=0x41414141, .pos.line=0x42424242, .pos.col = 0x43434343, .fnct.retType = type, .fnct.name=name});
+                    if (parse_function(fnctNode))
+                    {
+                        vec_push(node->prog.fncts, fnctNode);
+                    }
+                    else
+                    {
+                        fprintf(stderr, "failed to parse function %s, line %d, col %d\n", name, t->pos.line, t->pos.col);
+                        break;
+                    }
+                }
+                else if(parser_expect(TOKEN_TYPE_SEMICOLON, NULL, tokens) || parser_expect(TOKEN_TYPE_COMMA,NULL, tokens))
+                {
+                    // TODO: parse variable definition
+                    //parse_varDefinition();
+                }
+                else
+                {
+                    fprintf(stdout, "unexpected token at line %d, column %d\n", t->pos.line, t->pos.col);
+                    break;
+                }
+            }
+            else
+            {
+                fprintf(stdout, "unexpected token at line %d, column %d\n", t->pos.line, t->pos.col);
+                break;
+            }
+        }
+        else if (t == NULL) 
         {
             res = true;
+            break;
         }
-    }
-    else
-    { 
-        parserErrorAndExit("[-] parse error, unexpected token at beginning\n");
-    }
+        else
+        {
+            fprintf(stdout, "unexpected token at line %d, column %d\n", t->pos.line, t->pos.col);
+            break;
+        }
+    };
+
+    printf("\n************************ AST ************************\n");
+    astNode_print(node, 0);
 
     return res;
 }
@@ -296,8 +292,7 @@ static bool parser_expect(int type, const char* name, struct vec* tokens)
     bool res = false;
 
     struct token* t = vec_peekCurrent(tokens);            // peek at current token
-    tok_print((void*)t);
-
+    
     if (NULL == name)                                     // no name given, based solely on type
     {
         if (t->type == type)
@@ -317,12 +312,6 @@ static bool parser_expect(int type, const char* name, struct vec* tokens)
     return res;
 }
 
-bool parser_statement()
-{
-    bool res = false;
-
-    return res;
-}
 
 void parserErrorAndExit(const char* fmt, ...)
 {

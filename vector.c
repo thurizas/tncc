@@ -1,5 +1,6 @@
 #include "vector.h"
 #include "common.h"
+#include "node.h"
 
 
 #include <stdio.h>
@@ -7,12 +8,7 @@
 #include <memory.h>
 #include <stdint.h>
 
-struct node
-{
-  void* data;  
-  struct node* flink;
-  struct node* blink;
-};
+
 
 void vec_init(struct vec** v)
 {
@@ -70,6 +66,15 @@ void vec_pop(struct vec* v)
 		v->curItem = v->curItem->flink;
 	}
 		
+}
+
+// combines the vec_peekCurrent() and vec_pop() operation into a single function
+void* vec_getCurrent(struct vec* v)
+{
+	void* node = vec_peekCurrent(v);
+	vec_pop(v);
+
+	return node;
 }
 
 // peeks at current token, does not modify current index
