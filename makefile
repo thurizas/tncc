@@ -6,7 +6,7 @@ LKFLAGS=
 
 PROJ=tncc
 
-OBJS=tncc.o token.o lexer.o parser.o vector.o buffer.o util.o
+OBJS=tncc.o token.o lexer.o parser.o vector.o buffer.o util.o astNode.o
 
 # may need to install the packages
 # libasan, libasan-debuginfo, and libasan-static
@@ -31,6 +31,9 @@ lexer.o : lexer.c lexer.h
 
 parser.o : parser.c parser.h
 	$(CC) -c $(CCFLAGS) parser.c -o parser.o
+
+astNode.o : astNode.c astNode.h
+	$(CC) -c $(CCFLAGS) astNode.c -o astNode.o
 
 vector.o : vector.c vector.h
 	$(CC) -c $(CCFLAGS) vector.c -o vector.o
