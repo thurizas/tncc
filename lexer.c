@@ -381,7 +381,7 @@ bool lexer_lex()
 		  
 		  while ((ndx+1 < cntChars) && isValidIdentifier(buf_at(buf, ndx+1)))
 		  {
-			ndx += 1;                      // increment counter
+			ndx += 1;                        // increment counter
 			ch = buf_at(buf, ndx);
 			buf_append(temp, ch);
 			col += 1;

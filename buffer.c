@@ -33,6 +33,7 @@ void buf_free(struct buffer** pbuf)
   if((*pbuf)->data != NULL)
   {
 	free((*pbuf)->data);
+	(*pbuf)->data = NULL;
 	//fprintf(stderr, "[+] freeing internal memory in %s at 0x%8p\n", __func__,  (*pbuf)->data);
   }
 
@@ -54,6 +55,7 @@ void buf_setPeekPtr(struct buffer* pbuf, int32_t loc)
   pbuf->peekPtr = loc;
 }
 
+// inserts a character into the string
 void buf_append(struct buffer* pbuf, char ch)
 {
   uint32_t growSize = (uint32_t)floor(growPoint*(pbuf->maxSize));
@@ -80,6 +82,14 @@ void buf_append(struct buffer* pbuf, char ch)
   
   pbuf->data[pbuf->curSize] = ch;
   pbuf->curSize++; 
+}
+
+// insert a string into the buffer
+void buf_insert(struct buffer* pbuf, const char* src)
+{
+	size_t  len = strlen(src);
+	for (size_t ndx = 0; ndx < len; ndx++)
+		buf_append(pbuf, src[ndx]);
 }
 
 

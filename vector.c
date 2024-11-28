@@ -37,7 +37,7 @@ void vec_free(struct vec* v)
 	do
 	{
 	  v->tail = t->blink;
-	  if(t->data != NULL) free(t->data);
+	  //if(t->data != NULL) free(t->data);
 	  free(t);
 	} while((t = v->tail) != NULL);
   }
@@ -51,10 +51,16 @@ void vec_setCurrentNdx(struct vec* v, int32_t ndx)
 	v->curItem = v->head;
 }
 
+// get number of items managed by this vector
+uint32_t vec_len(struct vec* v)
+{
+	return v->cntItems;
+}
+
 // peeks at next value, does not change current index
 void* vec_peek(struct vec* v)
 {
-	return NULL;
+	return v->curItem->flink;
 }
 
 // return current value, and move current index up one
@@ -89,42 +95,82 @@ void* vec_peekCurrent(struct vec* v)
 		temp = v->curItem;
 		return temp->data;
 	}
-	else
-	{
-		fprintf(stderr, "[-] no current item selected, call setCurrentNdx first\n");
-	}
+	//else
+	//{
+	//	fprintf(stderr, "[-] no current item selected, call setCurrentNdx first\n");
+	//}
 	return NULL;
 }
 
+// pushes to the end of the link list
 void vec_push(struct vec* v, void* data)
 {
-  if((v->head == NULL) && (v->tail == NULL))
+  struct node* temp = calloc(1, sizeof(struct node));
+  if (NULL == temp)
   {
-	struct node* temp = calloc(1, sizeof(struct node));
-	temp->data = data;
-	temp->flink = NULL;
-	temp->blink = NULL;
-	
-	v->head = temp;
-	v->tail = temp;
+	  fprintf(stderr, "[-] failed to allocate new node for vector\n");
   }
   else
   {
-	struct node* t = v->head;
-	while((t = t->flink) != NULL);
+	if((v->head == NULL) && (v->tail == NULL))
+	{
+		temp->data = data;
+		temp->flink = NULL;
+		temp->blink = NULL;
+	
+		v->head = temp;
+		v->tail = temp;
+	}
+	else
+	{
+		struct node* t = v->head;
+		while((t = t->flink) != NULL);
 
-	struct node* temp = calloc(1, sizeof(struct node));
-	temp->data = data;
-	temp->flink = NULL;
-	temp->blink = v->tail;
-	v->tail->flink = temp;
-	v->tail = temp;
+		temp->data = data;
+		temp->flink = NULL;
+		temp->blink = v->tail;
+		v->tail->flink = temp;
+		v->tail = temp;
+	}
+
+	v->cntItems++;
   }
-
-  v->cntItems++;
 }
 
-void vec_print(struct vec* v, void (*ptr)(void*))
+// pushes to the front of the vector
+void vec_front(struct vec* v, void* data)
+{		
+	struct node* temp = calloc(1, sizeof(struct node));
+	if (NULL == temp)
+	{
+		fprintf(stderr, "[-] failed to allocate new node for vector\n");
+	}
+	else
+	{
+		if ((v->head == NULL) && (v->tail == NULL))                    // list is empty
+		{
+			temp->data = data;
+			temp->flink = NULL;
+			temp->blink = NULL;
+
+			v->head = temp;
+			v->tail = temp;
+		}// 0221a1e31ec0
+		else                                                          // list has data
+		{
+			temp->data = data;
+			temp->blink = NULL;
+			temp->flink = v->head;
+
+			v->head->blink = temp;
+			v->head = temp;
+		}
+
+		v->cntItems++;
+	}
+}
+
+void vec_print(struct vec* v, void (*ptr)(void*), bool blink)
 {
   if((v->head != NULL) && (v->tail != NULL))
   {
@@ -134,7 +180,7 @@ void vec_print(struct vec* v, void (*ptr)(void*))
 	  if(t->data != NULL)
 	  {
 		ptr(t->data);
-		fprintf(stdout, " ->");
+		if(blink) fprintf(stdout, " ->");
 		t = t->flink;
 	  }
 	} while(t != NULL);
@@ -146,27 +192,28 @@ void vec_print(struct vec* v, void (*ptr)(void*))
   }
 }
 
-//  This function clears the token buffer, deleting each token in the buffer.  
-//  The actual buffer is destroyed in lexer_deinit().
+// TODO : does this belong here...should be moved to token.c (?)
 void tokens_clear(struct vec* tokens)
 {
-  struct node*    node;
+  struct token*    token;
+
   if(tokens->cntItems > 0)
   {
-	node = tokens->head;
+	vec_setCurrentNdx(tokens, 0);
 
-	while(NULL != node)
+	token = vec_getCurrent(tokens);
+
+	while (NULL != token)
 	{
-	  struct token* t = (struct token*)node->data;
-
-	  // do we have a sVal to get rid of
-	  if((t->type == TOKEN_TYPE_ID) || (t->type == TOKEN_TYPE_KEYWORD) ||
-		 (t->type == TOKEN_TYPE_TYPE) || (t->type == TOKEN_TYPE_STRING))
+	  if ((token->type == TOKEN_TYPE_ID) || (token->type == TOKEN_TYPE_KEYWORD) ||
+		  (token->type == TOKEN_TYPE_TYPE) || (token->type == TOKEN_TYPE_STRING))
 	  {
-		free(t->sVal);
+		  free(token->sVal);
 	  }
 
-	  node = node->flink;
+	  struct token* nextToken = vec_getCurrent(tokens);
+	  free(token);
+	  token = nextToken;
 	}
   }
 }

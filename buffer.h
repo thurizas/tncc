@@ -23,6 +23,7 @@ int  buf_len(struct buffer*);
 void buf_setPeekPtr(struct buffer*, int32_t);
 
 void buf_append(struct buffer*, char);
+void buf_insert(struct buffer*, const char*);
 char buf_peek(struct buffer*);
 char buf_pop(struct buffer*);
 

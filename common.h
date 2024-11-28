@@ -17,6 +17,8 @@ static const uint8_t MAJOR = 0;
 static const uint8_t MINOR = 1;
 static const uint8_t PATCH = 0;
 
+static const char indent[] = "    ";
+
 
 
 enum
@@ -68,6 +70,15 @@ enum
 	AST_STMT_TYPE_RETURN
 };
 
+enum
+{
+	BVAL,
+	INTVAL,
+	FVAL,
+	DVAL,
+	SVAL
+};
+
 
 
 struct pos
@@ -78,15 +89,15 @@ struct pos
 
 struct token
 {
-	int        type;
+	int32_t    type;
 	struct pos pos;
 
 	union
 	{
-		char    cVal;
-		int     iVal;
-		float   fVal;
-		char*   sVal;
+		char     cVal;
+		int32_t  iVal;
+		float    fVal;
+		char*    sVal;
 	};
 };
 

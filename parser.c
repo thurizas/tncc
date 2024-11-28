@@ -45,6 +45,16 @@ void parser_deinit()
         tokens = NULL;
 }
 
+struct astNode* parser_getAst()
+{
+    return node;
+}
+
+void parser_delAst()
+{
+    // TODO: delete ast here
+}
+
 //<ext> ::= <int>
 static struct astNode* parse_expression(struct vec* ast)
 {
@@ -174,6 +184,7 @@ static bool parse_function(struct astNode* fnctNode)
         parserErrorAndExit("unexpected symbol at line %d, col %d\n", SAFE_LIN(token), SAFE_COL(token));
     }
  
+    // TODO : need to delete typelist here...
     return res;
 }
 
@@ -261,9 +272,6 @@ static bool parse_program()
             break;
         }
     };
-
-    printf("\n************************ AST ************************\n");
-    astNode_print(node, 0);
 
     return res;
 }

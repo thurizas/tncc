@@ -2,6 +2,7 @@
 #define _vector_h_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 struct node;
 
@@ -23,11 +24,12 @@ void* vec_peekCurrent(struct vec* v);     // peeks at current value, does not mo
 void* vec_getCurrent(struct vec* v);
 void vec_pop(struct vec* v);             // return current value, and move current index up one
 
-
+uint32_t vec_len(struct vec* v);
 
 void vec_push(struct vec*, void*);
+void vec_front(struct vec*, void*);
 
-void vec_print(struct vec*, void (*ptr)(void*));
+void vec_print(struct vec*, void (*ptr)(void*), bool);
 
 void tokens_clear(struct vec*);
 

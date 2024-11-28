@@ -19,6 +19,9 @@ extern int optind;
 #include "token.h"
 #include "lexer.h"
 #include "parser.h"
+#include "astNode.h"
+#include "codeGen.h"
+#include "codeEmitter.h"
 
 static const char* DEFNAME = "a.out";
 
@@ -82,11 +85,13 @@ int main(int argc, char** argv)
 
 	  case 'v':
 		showVersion(argv[0]);
+		exit(0);
 		break;
 
 	  case '?':
 	  case 'h':
 		showHelp(argv[0]);
+		exit(0);
 		break;
 	}
    }
@@ -129,26 +134,53 @@ int main(int argc, char** argv)
 	{
 		struct vec* tokens = lexer_getTokens();
 		fprintf(stdout, "\n******************** lexer output ********************\n");
-		vec_print(tokens, tok_print);                                         // print out tokens vector
+		vec_print(tokens, tok_print, true);                                     // print out tokens vector
 		
 		// check to see if we are required to parse, and if parser is initialized
 		if (((flags & FLAGS_PAR) == FLAGS_PAR) && parser_init(tokens, flags))   
 		{
 		  if (parser_parse())
 		  {
-				// TODO: perform conversion of AST to IR representation
-				// TODO: perform conversion of IR to asm represnetation
-				// TODO: perform code emittion (i.e. asm to elf file)
-		  }
+			  struct astNode* root = parser_getAst();
 
+			  printf("\n************************ AST ************************\n");
+			  astNode_print(root, 0);
+
+			  if (((flags & FLAGS_CODEGEN) == FLAGS_CODEGEN) && cg_init(root, flags))
+			  {
+				  if (cg_genAsm()) 
+				  {
+					struct vec* asmList = cg_getAsm();
+
+					printf("\n************************ ASM ************************\n");
+					cg_printAsm(asmList);	
+
+ 					if (ce_init(asmList, outName, flags))
+					{
+						ce_emit();
+						ce_deinit();
+					}
+					else
+					{
+						fprintf(stderr, "[-] failed to initialize the code emitter module\n");
+					}
+				  }
+				  cg_deinit();
+			  }
+			  else
+			  {
+				  fprintf(stderr, "failed to initialize code generation module\n");
+			  }
+
+			  parser_delAst();
+		  }
 		  parser_deinit();
 		}
 		else
 		{
-			fprintf(stderr, "[-] failed to parse %s\n", inName);
+			fprintf(stderr, "[-] failed to initialize code generation module\n");
 		}
-
-		tokens_clear(tokens);                                                 // destory vector of tokens
+		tokens_clear(tokens);                                    // destory vector of tokens
 		vec_free(tokens);
 	}
 	
