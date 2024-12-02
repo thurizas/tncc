@@ -185,6 +185,7 @@ static bool parse_function(struct astNode* fnctNode)
     }
  
     // TODO : need to delete typelist here...
+    vec_free(type_list);
     return res;
 }
 
