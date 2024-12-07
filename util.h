@@ -14,7 +14,7 @@ void exitFailure(const char*, uint32_t);
 bool isValidIdentifier(char);
 
 // function pointer to print nodes in linked list.
-static void (*prt)(void*);
+typedef void (*prt)(void*);
 
 void printAST(struct vec*);
 

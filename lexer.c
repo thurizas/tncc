@@ -207,7 +207,7 @@ bool lexer_lex()
 			t->pos.line = line;
 			t->pos.col = col;
 			t->iVal = atoi(buf_data(temp));
-			vec_push(tokens, t);
+			vec_push(tokens, 0, t);
 		  }
 		  else
 		  {
@@ -227,7 +227,7 @@ bool lexer_lex()
 			token->pos.col = col;
 			token->type = TOKEN_TYPE_LPAREN;
 			token->cVal = '(';
-			vec_push(tokens, token);
+			vec_push(tokens, 0, token);
 		  }
 		  else
 		  {
@@ -245,7 +245,7 @@ bool lexer_lex()
 			token->pos.col = col;
 			token->type = TOKEN_TYPE_RPAREN;
 			token->cVal = ')';
-			vec_push(tokens, token);
+			vec_push(tokens, 0, token);
 		  }
 		  else
 		  {
@@ -263,7 +263,7 @@ bool lexer_lex()
 			token->pos.col = col;
 			token->type = TOKEN_TYPE_LCURLYB;
 			token->cVal = '{';
-			vec_push(tokens, token);
+			vec_push(tokens, 0, token);
 		  }
 		  else
 		  {
@@ -281,7 +281,7 @@ bool lexer_lex()
 			token->pos.col = col;
 			token->type = TOKEN_TYPE_RCURLYB;
 			token->cVal = '}';
-			vec_push(tokens, token);
+			vec_push(tokens, 0, token);
 		  }
 		  else
 		  {
@@ -299,7 +299,7 @@ bool lexer_lex()
 			t->pos.line = line;
 			t->pos.col = col;
 			t->cVal = ';';
-			vec_push(tokens, t);
+			vec_push(tokens, 0, t);
 		  }
 		  else
 		  {
@@ -317,7 +317,7 @@ bool lexer_lex()
 			t->pos.line = line;
 			t->pos.col = col;
 			t->cVal = '*';
-			vec_push(tokens, t);
+			vec_push(tokens, 0, t);
 		  }
 		  else
 		  {
@@ -335,7 +335,7 @@ bool lexer_lex()
 			t->pos.line = line;
 			t->pos.col = col;
 			t->cVal = ',';
-			vec_push(tokens, t);
+			vec_push(tokens, 0, t);
 		  }
 		  else
 		  {
@@ -347,31 +347,57 @@ bool lexer_lex()
 		// TODO : remember to handle capitol letters....
 		case '_':                          // start of an identifier
 		case 'a':                          // identifer start with a letter or underscore
+		case 'A':
 		case 'b':
+		case 'B':
 		case 'c':
+		case 'C':
 		case 'd':
+		case 'D':
 		case 'e':
+		case 'E':
 		case 'f':
+		case 'F':
 		case 'g':
+		case 'G':
 		case 'h':
+		case 'H':
 		case 'i':
+		case 'I':
 		case 'j':
+		case 'J':
 		case 'k':
+		case 'K':
 		case 'l':
+		case 'L':
 		case 'm':
+		case 'M':
 		case 'n':
+		case 'N':
 		case 'o':
+		case 'O':
 		case 'p':
+		case 'P':
 		case 'q':
+		case 'Q':
 		case 'r':
+		case 'R':
 		case 's':
+		case 'S':
 		case 't':
+		case 'T':
 		case 'u':
+		case 'U':
 		case 'v':
+		case 'V':
 		case 'w':
+		case 'W':
 		case 'x':
+		case 'X':
 		case 'y':
-		case 'z':   
+		case 'Y':
+		case 'z':
+		case 'Z':
 		{				
 		  struct buffer* temp = NULL;
 		  uint32_t start = col;
@@ -400,7 +426,7 @@ bool lexer_lex()
 			if (lexer_isType(temp)) { t->type = TOKEN_TYPE_TYPE;  }
 			if (lexer_isKeywork(temp)) { t->type = TOKEN_TYPE_KEYWORD; }
 
-			vec_push(tokens, t);
+			vec_push(tokens, (int)strlen(t->sVal)+1, t);
 		  }
 		  else
 		  {

@@ -103,7 +103,7 @@ void* vec_peekCurrent(struct vec* v)
 }
 
 // pushes to the end of the link list
-void vec_push(struct vec* v, void* data)
+void vec_push(struct vec* v, int size, void* data)
 {
   struct node* temp = calloc(1, sizeof(struct node));
   if (NULL == temp)
@@ -114,6 +114,7 @@ void vec_push(struct vec* v, void* data)
   {
 	if((v->head == NULL) && (v->tail == NULL))
 	{
+		temp->dataSize = size;
 		temp->data = data;
 		temp->flink = NULL;
 		temp->blink = NULL;
@@ -126,6 +127,7 @@ void vec_push(struct vec* v, void* data)
 		struct node* t = v->head;
 		while((t = t->flink) != NULL);
 
+		temp->dataSize = size;
 		temp->data = data;
 		temp->flink = NULL;
 		temp->blink = v->tail;
@@ -138,7 +140,7 @@ void vec_push(struct vec* v, void* data)
 }
 
 // pushes to the front of the vector
-void vec_front(struct vec* v, void* data)
+void vec_front(struct vec* v, int size, void* data)
 {		
 	struct node* temp = calloc(1, sizeof(struct node));
 	if (NULL == temp)
@@ -149,15 +151,17 @@ void vec_front(struct vec* v, void* data)
 	{
 		if ((v->head == NULL) && (v->tail == NULL))                    // list is empty
 		{
+			temp->dataSize = size;
 			temp->data = data;
 			temp->flink = NULL;
 			temp->blink = NULL;
 
 			v->head = temp;
 			v->tail = temp;
-		}// 0221a1e31ec0
+		}
 		else                                                          // list has data
 		{
+			temp->dataSize = size;
 			temp->data = data;
 			temp->blink = NULL;
 			temp->flink = v->head;
@@ -190,6 +194,63 @@ void vec_print(struct vec* v, void (*ptr)(void*), bool blink)
   {
 	fprintf(stderr, "[+] list is empty\n");
   }
+}
+
+void vec_clear(struct vec* v)
+{
+	if (v->cntItems > 0)
+	{
+		vec_setCurrentNdx(v, 0);
+
+		struct node* node = vec_getCurrent(v);
+
+		while (NULL != node)
+		{
+			free(node->data);
+
+			struct node* nextNode = vec_getCurrent(v);
+			free(node);
+			node=nextNode;
+		}
+
+		v->cntItems = 0;
+		v->curItem = NULL;
+		v->curNdx = -1;
+
+		v->head = NULL;
+		v->tail = NULL;
+	}
+}
+
+
+void vec_copy(struct vec* dst, struct vec* src)
+{
+	if (src->cntItems > 0)                           // we have stuff to copy
+	{
+		if (dst->cntItems > 0)                       // if dst has stuff in it, clean
+		{
+			vec_clear(dst);
+		}
+
+		struct node* temp = src->head;
+		while (NULL != temp)
+		{
+			int len = temp->dataSize;
+			void* data = calloc(len + 1, sizeof(char));
+			if (NULL != data)
+			{
+				memcpy(data, temp->data, len);
+				vec_push(dst, len, (void*)data);
+			}
+			else
+			{
+				fprintf(stderr, "[-] unable to allocate memory in vec_copy\n");
+			}
+
+			temp = temp->flink;
+		}
+
+	}
 }
 
 // TODO : does this belong here...should be moved to token.c (?)

@@ -10,7 +10,7 @@
 
 struct astNode* astNode_create(struct astNode* _node)
 {
-    struct astNode* node = malloc(sizeof(struct astNode));
+    struct astNode* node = malloc(sizeof(struct astNode));         // LEAKS 56 bytes, leak rcds 1, 2
     if (NULL != node)
     {  
         memset(node, 0, sizeof(struct astNode));
@@ -22,6 +22,83 @@ struct astNode* astNode_create(struct astNode* _node)
     }
 
     return node;
+}
+
+void astNode_delExpr(struct astNode* _node)
+{
+    struct exp e = _node->exp;
+    if(NULL != e.left) astNode_delete(e.left);
+    if(NULL != e.right) astNode_delete(e.right);
+
+    free(_node);
+}
+
+void astNode_delStmt(struct astNode* _node)
+{
+    struct stmt s = _node->stmt;
+    switch (s.type)
+    {
+        case AST_STMT_TYPE_RETURN: astNode_delete(s.returnStmt.exp); break;
+    }
+
+    free(_node);
+}
+
+void astNode_delFnct(struct astNode* _node)
+{
+    struct fnct f = _node->fnct;
+    if (NULL != f.retType){ free(f.retType); f.retType = NULL; }
+    if (NULL != f.name){ free(f.name); f.name = NULL; }
+
+    // iterate over vector of arguments and free individual data
+    struct node* item = f.args->head;
+    while (item != NULL)
+    {
+        free(item->data);
+        item->data = NULL;
+        item = item->flink;
+    } 
+    vec_free(f.args);
+
+    // iterate over vector of statements and free individual statements
+    //item = f.stmts->head;
+    //while (NULL != item)
+    //{
+    //    astNode_delStmt(item->data);
+    //    item = item->flink;
+    //}
+    vec_free(f.stmts);
+
+    free(_node);
+}
+
+void astNode_delProg(struct prog prog)
+{
+    // iterate over function pointer in program
+    struct node* item = prog.fncts->head;
+    while (NULL != item)
+    {
+        astNode_delFnct(item->data);
+        item = item->flink;
+    }
+
+    vec_free(prog.fncts);
+}
+
+
+void astNode_delete(struct astNode* _node)
+{
+    fprintf(stdout, "[+] deleteing the AST structure");
+    switch (_node->type)
+    {
+    case AST_TYPE_EXPR: astNode_delExpr(_node); break;
+    case AST_TYPE_STMT: astNode_delStmt(_node); break;
+    case AST_TYPE_FUNCTION: astNode_delFnct(_node); break;
+    case AST_TYPE_PROGRAM: astNode_delProg(_node->prog); break;
+    default: printf("***Unknown AST type: %d\n", _node->type);
+    }
+
+    free(_node);
 }
 
 

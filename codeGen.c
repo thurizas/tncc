@@ -96,7 +96,7 @@ static bool cg_processStmt(struct stmt* pStmt)
                 sprintf(buf, "%*sret\n", 4, "");
                 buf_insert(line, buf);
 
-                vec_push(asmInsts, line);
+                vec_push(asmInsts, (int)strlen(buf)+1, line);
 
                 free(buf);
 
@@ -128,7 +128,7 @@ static bool cg_processFnct(struct fnct* fnct)
     buf_insert(label, fnct->name);
     buf_append(label, ':');
     buf_append(label, '\n');
-    vec_push(asmInsts, label);
+    vec_push(asmInsts, buf_len(label), label);
 
     // generate function body
     vec_setCurrentNdx(fnct->stmts, 0);
@@ -147,11 +147,6 @@ static bool cg_processFnct(struct fnct* fnct)
     }
 
     return res;
-}
-
-static void printInst(void* data)
-{
-    fprintf(stdout, "%s", (const char*)data);
 }
 
 bool cg_genAsm()
@@ -191,7 +186,7 @@ bool cg_genAsm()
                             }
 
                             // push fnctList to beginning of asmInsts
-                            vec_front(asmInsts, fnctList);
+                            vec_front(asmInsts, buf_len(fnctList), fnctList);
 
 
                         }
@@ -215,7 +210,7 @@ bool cg_genAsm()
         struct buffer* bufTail = NULL;
         buf_init(&bufTail);
         buf_insert(bufTail, "\n.section .note.GNU-stack, \"\",@progbits");
-        vec_push(asmInsts, bufTail);
+        vec_push(asmInsts, buf_len(bufTail), bufTail);
         res = true;
     }
 

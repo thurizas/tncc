@@ -23,7 +23,7 @@ static char* baseName(char* outName)
     }
     else
     {
-        size_t len = strlen(outName);
+        int len = (int)strlen(outName);
         ptrdiff_t start = loc - outName;
 
         for (int ndx = (int)start; ndx < len; ndx++)
@@ -60,7 +60,7 @@ bool ce_init(struct vec* _asmInsts, const char* outName, uint8_t flags)
         }
         else
         {
-            char* base = baseName(outName);
+            char* base = baseName((char*)outName);
 
             outFile = calloc(strlen(base) + 5, sizeof(char));        // +4 for '.asm' and +1 for null-terminator
             if (NULL != outFile)

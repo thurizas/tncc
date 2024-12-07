@@ -61,5 +61,6 @@ struct astNode
 
 
 struct astNode* astNode_create(struct astNode*);
+void astNode_delete(struct astNode*);
 void astNode_print(struct astNode*, uint32_t);
 #endif

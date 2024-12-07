@@ -9,7 +9,7 @@ struct node;
 struct vec
 {
   int32_t      curNdx;            // which element is the current elements
-  uint32_t     cntItems;          // number of items managed by this vector
+  int32_t     cntItems;          // number of items managed by this vector
   struct node* curItem;           // pointer to the current item
   struct node* head;
   struct node* tail;
@@ -26,8 +26,11 @@ void vec_pop(struct vec* v);             // return current value, and move curre
 
 uint32_t vec_len(struct vec* v);
 
-void vec_push(struct vec*, void*);
-void vec_front(struct vec*, void*);
+void vec_clear(struct vec*);
+void vec_copy(struct vec* dst, struct vec* src);
+
+void vec_push(struct vec*, int, void*);
+void vec_front(struct vec*, int, void*);
 
 void vec_print(struct vec*, void (*ptr)(void*), bool);
 

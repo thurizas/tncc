@@ -174,7 +174,7 @@ int main(int argc, char** argv)
 
 			  parser_delAst();
 		  }
-		  parser_deinit();
+ 		  parser_deinit();
 		}
 		else
 		{
@@ -183,8 +183,6 @@ int main(int argc, char** argv)
 		tokens_clear(tokens);                                    // destory vector of tokens
 		vec_free(tokens);
 	}
-	
-                                                     
 	lexer_deinit();
   }
   else
