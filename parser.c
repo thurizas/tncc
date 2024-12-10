@@ -239,7 +239,7 @@ static bool parse_program()
                 if (parser_expect(TOKEN_TYPE_LPAREN, NULL, tokens))
                 {
                     vec_pop(tokens);                               // eat left paranthesis
-                    struct astNode* fnctNode = astNode_create(&(struct astNode) { .type = AST_TYPE_FUNCTION, .flags=0x41414141, .pos.line=0x42424242, .pos.col = 0x43434343, .fnct.retType = type, .fnct.name=name});
+                    struct astNode* fnctNode = astNode_create(&(struct astNode) { .type = AST_TYPE_FUNCTION, .fnct.retType = type, .fnct.name=name});
                     if (parse_function(fnctNode))
                     {
                         vec_push(node->prog.fncts, sizeof(struct astNode), fnctNode); 

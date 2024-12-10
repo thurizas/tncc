@@ -61,12 +61,12 @@ void astNode_delFnct(struct astNode* _node)
     vec_free(f.args);
 
     // iterate over vector of statements and free individual statements
-    //item = f.stmts->head;
-    //while (NULL != item)
-    //{
-    //    astNode_delStmt(item->data);
-    //    item = item->flink;
-    //}
+    item = f.stmts->head;
+    while (NULL != item)
+    {
+        astNode_delStmt(item->data);
+        item = item->flink;
+    }
     vec_free(f.stmts);
 
     free(_node);
@@ -88,14 +88,15 @@ void astNode_delProg(struct prog prog)
 
 void astNode_delete(struct astNode* _node)
 {
-    fprintf(stdout, "[+] deleteing the AST structure");
+    fprintf(stdout, "[+] deleteing the AST structure\n");
     switch (_node->type)
     {
-    case AST_TYPE_EXPR: astNode_delExpr(_node); break;
-    case AST_TYPE_STMT: astNode_delStmt(_node); break;
-    case AST_TYPE_FUNCTION: astNode_delFnct(_node); break;
-    case AST_TYPE_PROGRAM: astNode_delProg(_node->prog); break;
-    default: printf("***Unknown AST type: %d\n", _node->type);
+      case AST_TYPE_EXPR: astNode_delExpr(_node); break;
+      case AST_TYPE_STMT: astNode_delStmt(_node); break;
+      case AST_TYPE_FUNCTION: astNode_delFnct(_node); break;
+	  case AST_TYPE_PROGRAM: astNode_delProg(_node->prog); break;
+	  case AST_TYPE_INTVAL: break;                                   // no dynamic data just continue
+	  default: printf("***Unknown AST type: %d\n", _node->type);
     }
 
     free(_node);
