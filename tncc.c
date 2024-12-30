@@ -20,6 +20,7 @@ extern int optind;
 #include "lexer.h"
 #include "parser.h"
 #include "astNode.h"
+#include "intrep.h"
 #include "codeGen.h"
 #include "codeEmitter.h"
 
@@ -71,13 +72,16 @@ int main(int argc, char** argv)
 		switch(step)
 		{
 		  case 'l':
-			flags = flags ^ FLAGS_LEX;
+			flags ^= FLAGS_LEX;
 			break;
 		  case 'p':
-			flags = flags ^ FLAGS_PAR;
+			flags ^= FLAGS_PAR;
 			break;
+		  case 'i':
+			  flags ^= FLAGS_IR;
+			  break;
 		  case 'c':
-			flags = flags ^ FLAGS_CODEGEN;
+			flags ^= FLAGS_CODEGEN;
 			break;
 		}
 	  }
@@ -141,44 +145,60 @@ int main(int argc, char** argv)
 		{
 		  if (parser_parse())
 		  {
-			  struct astNode* root = parser_getAst();
+			struct astNode* root = parser_getAst();
 
-			  printf("\n************************ AST ************************\n");
-			  astNode_print(root, 0);
+			printf("\n************************ AST ************************\n");
+			astNode_print(root, 0);
 
-			  if (((flags & FLAGS_CODEGEN) == FLAGS_CODEGEN) && cg_init(root, flags))
-			  {
-				  if (cg_genAsm()) 
-				  {
-					struct vec* asmList = cg_getAsm();
+			if (((flags & FLAGS_IR) == FLAGS_IR) && ir_init(root, flags))
+			{
+			   // TODO : generate the intermediate representation... TACKY
+			   if(ir_genIR())
+			   {
+			     // TODO : modify cg_init to take the root of the IR tree...
+				 if (((flags & FLAGS_CODEGEN) == FLAGS_CODEGEN) && cg_init(root, flags))
+				 {
+				   if (cg_genAsm()) 
+				   {
+					 struct vec* asmList = cg_getAsm();
 
-					printf("\n************************ ASM ************************\n");
-					cg_printAsm(asmList);	
+					 printf("\n************************ ASM ************************\n");
+					 cg_printAsm(asmList);
 
- 					if (ce_init(asmList, outName, flags))
-					{
-						ce_emit();
+					 if (ce_init(asmList, outName, flags))
+					 {
+					    ce_emit();
 						ce_deinit();
-					}
-					else
-					{
-						fprintf(stderr, "[-] failed to initialize the code emitter module\n");
-					}
-				  }
-				  cg_deinit();
-			  }
-			  else
-			  {
-				  fprintf(stderr, "failed to initialize code generation module\n");
-			  }
-
-			  parser_delAst();
+					 }
+					 else
+					 {
+					   fprintf(stderr, "[-] failed to initialize the code emitter module\n");
+					 }
+				   }
+				   cg_deinit();
+				 }
+				 else
+				 {
+				   fprintf(stderr, "failed to initialize code generation module\n");
+				   res = ERR_CODEGEN_FAILED;
+				 }
+			     ir_deinit();
+			   }
+			}
+			else
+			{
+			  fprintf(stderr, "failed to initialized intermediate representation module\n");
+			  res = ERR_INTREP_FAILED;
+			}
+			  
+			parser_delAst();
 		  }
  		  parser_deinit();
 		}
 		else
 		{
-			fprintf(stderr, "[-] failed to initialize code generation module\n");
+			fprintf(stderr, "[-] failed to initialize parser module\n");
+			res = ERR_PARSE_FAILED;
 		}
 		tokens_clear(tokens);                                    // destory vector of tokens
 		vec_free(tokens);
@@ -207,14 +227,17 @@ void showVersion(const char* name)
 
 void showHelp(const char* name)
 {
-  printf("%s - a tiny, nearly complete C compiler\n", name);
-  printf("usage %s [options] <input_file>\n", name);
-  printf("\noptions:                       \n");
-  printf("d                set debug flag             \n");
-  printf("o <file>         use <file> as output file  \n");
-  printf("s                only perform upto stage s  \n");
-  printf("                 s can be l, p, or c        \n");
-  printf("v                display version information\n");
-  printf("h                display short help screen  \n");
+  printf("%s - a tiny, nearly complete C compiler              \n", name);
+  printf("usage %s [options] <input_file>                      \n", name);
+  printf("\noptions:                                           \n");
+  printf("d                set debug flag                      \n");
+  printf("o <file>         use <file> as output file           \n");
+  printf("s                only perform upto stage s, s can be:\n");
+  printf("                   l (lexer only),                   \n");
+  printf("	                 p (parser only - builds AST)      \n");
+  printf("                   i (intermediate representation)   \n"); 
+  printf("                   c (generate assembly              \n");
+  printf("v                display version information         \n");
+  printf("h                display short help screen           \n");
 }
 		
