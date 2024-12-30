@@ -103,9 +103,10 @@ void astNode_delete(struct astNode* _node)
 
 
 
-static const char* astNodeTypes[] = { "program node    ", "function node   ", "statement node  ", 
-                                      "expression node ", "integer constant"};
-
+static const char* astNodeTypes[] = { "program node           ", "function node          ", "statement node         ", 
+                                      "expression node        ", "integer constant       ", "string constant        ",
+                                      "character constant     ", "floating point constant", "unitary opertor        "};
+                                                                                            
 static void astNode_printExpt(struct exp* node, uint32_t depth)
 {
     if (NULL == node->right)                       // only single argument
@@ -201,6 +202,12 @@ void astNode_print(struct astNode* astnode, uint32_t depth)
 
         case AST_TYPE_INTVAL:
             printf("%*svalue: %d\n", depth+4, "", astnode->iVal);
+            break;
+
+        case AST_TYPE_UNOP:
+            printf("%*soperator: %c\n", depth + 4, "", astnode->cVal);
+            printf("%*sexpresion: ", depth + 4, "");
+            astNode_print(astnode->exp.left, depth + 4);
             break;
 
         default:

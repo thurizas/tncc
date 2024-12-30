@@ -103,6 +103,20 @@ char buf_peek(struct buffer* pbuf)
   return ch;
 }
 
+
+// given an index (ndx) peaks at the next character (i.e. the char at ndx+1)
+char buf_peekAt(struct buffer* pbuf, uint32_t curNdx)
+{
+	char ch = 0x00;
+
+	if ((curNdx + 1 > 0) && (curNdx + 1 <= pbuf->curSize))
+	{
+		ch = pbuf->data[curNdx+1];
+	}
+
+	return ch;
+}
+
 // pop and element from the buffer, actually just decrease its size by one
 char buf_pop(struct buffer* pbuf)
 {

@@ -17,6 +17,7 @@ void tok_print(void* data)
 		else if (t->type == TOKEN_TYPE_TYPE) fprintf(stdout, "%s", t->sVal);
 		else if (t->type == TOKEN_TYPE_KEYWORD) fprintf(stdout, "%s", t->sVal);
 		else if (t->type == TOKEN_TYPE_ID) fprintf(stdout, "%s", t->sVal);
+		else if (t->type == TOKEN_TYPE_DECREMENT) fprintf(stdout, "%s", t->sVal);
 		else fprintf(stdout, "%c", t->cVal);
 		fprintf(stdout, "  }\n");
 	}

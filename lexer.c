@@ -343,8 +343,57 @@ bool lexer_lex()
 		  }
 		}
 		break;
+
+		case '~' :
+		{
+			struct token* t = NULL;
+			if (NULL != (t = malloc(sizeof(struct token))))
+			{
+				t->type = TOKEN_TYPE_TILDA;
+				t->pos.line = line;
+				t->pos.col = col;
+				t->cVal = '~';
+				vec_push(tokens, 0, t);
+			}
+			else
+			{
+				exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
+			}
+		}
+			break;
+
+		case '-' :
+		{
+			struct token* t = NULL;
+			if (NULL != (t = malloc(sizeof(struct token))))
+			{
+				char nextCh = buf_peekAt(buf, ndx);      //  peak at next token
+
+				if (nextCh == '-')                       // got '--'
+				{
+					t->type = TOKEN_TYPE_DECREMENT;
+					t->pos.line = line;
+					t->pos.col = col;
+					if (NULL == (t->sVal = calloc(1, 3)))
+					{
+						exitFailure("failed to allocate storage for token", ERR_LEX_MEMORY);
+					}
+					t->sVal[0] = '-'; t->sVal[1] = '-';
+					ndx = ndx + 1;                       // eat second glyph in operator 
+				}
+				else
+				{ 
+					t->type = TOKEN_TYPE_NEGATION;
+					t->pos.line = line;
+					t->pos.col = col;
+					t->cVal = '-';
+				}
+
+				vec_push(tokens, 0, t);
+			}
+		}
+		break;
 		
-		// TODO : remember to handle capitol letters....
 		case '_':                          // start of an identifier
 		case 'a':                          // identifer start with a letter or underscore
 		case 'A':

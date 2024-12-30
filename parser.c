@@ -55,7 +55,7 @@ void parser_delAst()
     astNode_delete(node);
 }
 
-//<ext> ::= <int>
+//<exp> ::= <int> | <unop> <exp> | '(' <exp> ')'
 static struct astNode* parse_expression(struct vec* ast)
 {
     struct astNode* node = NULL;
@@ -70,8 +70,51 @@ static struct astNode* parse_expression(struct vec* ast)
             vec_push(ast, sizeof(struct astNode), node);
         }
 
-        vec_pop(tokens);                                    // remove the numeric literal node
+        vec_pop(tokens);                                             // remove the numeric literal node
         return node;
+    }
+    else if ((token != NULL) && (token->type == TOKEN_TYPE_TILDA))   // unon exp
+    {
+        node = astNode_create(&(struct astNode) { .type = AST_TYPE_UNOP, .iVal = token->iVal });
+        vec_pop(tokens);
+        struct astNode* expNode = parse_expression(NULL);
+        node->exp.left = expNode;
+
+        if (NULL != ast)
+        {
+            vec_push(ast, sizeof(struct astNode), node);
+        }
+
+        return node;
+    }
+    else if ((token != NULL) && (token->type == TOKEN_TYPE_NEGATION))
+    {
+        node = astNode_create(&(struct astNode) { .type = AST_TYPE_UNOP, .iVal = token->iVal });
+        vec_pop(tokens);
+        struct astNode* expNode = parse_expression(NULL);
+        node->exp.left = expNode;
+
+        if (NULL != ast)
+        {
+            vec_push(ast, sizeof(struct astNode), node);
+        }
+
+        return node;
+    }
+    else if ((token != NULL) && (token->type == TOKEN_TYPE_LPAREN))
+    {
+        node = astNode_create(&(struct astNode) { .type = AST_TYPE_EXPR });
+        vec_pop(tokens);                                                     // eat left paran.
+        struct astNode* expNode = parse_expression(NULL);
+        if (parser_expect(TOKEN_TYPE_RPAREN, NULL, tokens))
+        {
+            vec_pop(tokens);                                                 // eat right paran.
+            return expNode;
+        }
+        else
+        {
+            parserErrorAndExit("unmatched '(' found at line %d, col %d\n", SAFE_LIN(token), SAFE_COL(token));
+        }
     }
     else
     {
@@ -171,7 +214,7 @@ static bool parse_function(struct astNode* fnctNode)
             } while ((NULL != token) && (token->type != TOKEN_TYPE_RCURLYB));
 
             vec_pop(tokens);                          // eat terminating semicolon
-            fnctNode->fnct.stmts = stmt_list;         // add vector if statements to function node
+            fnctNode->fnct.stmts = stmt_list;         // add vector of statements to function node
                 
             res = true;
         }
