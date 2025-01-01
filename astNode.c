@@ -9,17 +9,10 @@
 
 
 struct astNode* astNode_create(struct astNode* _node)
-{
-    struct astNode* node = malloc(sizeof(struct astNode));         // LEAKS 56 bytes, leak rcds 1, 2
-    if (NULL != node)
-    {  
-        memset(node, 0, sizeof(struct astNode));
-        memcpy(node, _node, sizeof(struct astNode));
-    }
-    else
-    {
-        exitFailure("Memory allocation error creating astNode\n", -ERR_MEMORY);
-    }
+{     
+    struct astNode* node = tncc_calloc(1, sizeof(struct astNode));
+    //memset(node, 0, sizeof(struct astNode));
+    memcpy(node, _node, sizeof(struct astNode));
 
     return node;
 }
@@ -109,14 +102,16 @@ static const char* astNodeTypes[] = { "program node           ", "function node 
                                                                                             
 static void astNode_printExpt(struct exp* node, uint32_t depth)
 {
+
     if (NULL == node->right)                       // only single argument
     {
+        printf("%*soperator: %s", depth, "", node->op);
         astNode_print(node->left, depth + 4);
     }
     else
     {
         astNode_print(node->left, depth + 4);
-        printf("%*s%s", depth, "", node->op);
+        printf("%*soperator: %s", depth, "", node->op);
         astNode_print(node->right, depth + 4);
     }
 

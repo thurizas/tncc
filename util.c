@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <string.h>
 
 
 // valid tokens for identifier are _ [a-zA-Z0-9]
@@ -32,22 +33,6 @@ void printAST(struct vec* ast)
             printf("Abstract syntax tree is empty\n");
             return;
         }
-
-        // AST is a vector of astNodes's
-        /*
-            program node  +
-                          |
-                          +- function node (main)
-                                |
-                                + -- statement node
-                                         |
-                                         + return statement
-                                                 |
-                                                 +- expression statement
-                                                             |
-                                                             + -- value node (int)
-
-        */
          
         vec_setCurrentNdx(ast, 0);
         struct astNode* node = vec_peekCurrent(ast);
@@ -56,6 +41,31 @@ void printAST(struct vec* ast)
 
     }
 
+}
+
+
+void* tncc_calloc(size_t num, size_t size)
+{
+    void* alloc = NULL;
+
+    alloc = calloc(num, size);
+    if (NULL == alloc)
+    {
+        exitFailure("Failed to allocate memory\n", -ERR_MEMORY);
+    }
+
+    return alloc;
+}
+
+char* tempName()
+{
+    static uint32_t  cnt = 0;
+    char* tmp = tncc_calloc(9, sizeof(char));
+    snprintf(tmp, 8, "tmp.%03d", cnt);
+
+    cnt++;
+
+    return tmp;
 }
 
 void exitFailure(const char* msg, uint32_t code)

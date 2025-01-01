@@ -9,7 +9,9 @@
 #define SAFE_LIN(t) ((t) != NULL? (t)->pos.line: 0)
 #define SAFE_COL(t) ((t) != NULL? (t)->pos.col:0)
 
-
+// wrapper around calloc, checks for memory allocation failure
+void* tncc_calloc(size_t num, size_t size);
+char* tempName();
 void exitFailure(const char*, uint32_t);
 bool isValidIdentifier(char);
 

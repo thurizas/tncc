@@ -103,7 +103,7 @@ void* vec_peekCurrent(struct vec* v)
 }
 
 // pushes to the end of the link list
-void vec_push(struct vec* v, int size, void* data)
+void vec_push(struct vec* v, size_t size, void* data)
 {
   struct node* temp = calloc(1, sizeof(struct node));
   if (NULL == temp)
@@ -140,7 +140,7 @@ void vec_push(struct vec* v, int size, void* data)
 }
 
 // pushes to the front of the vector
-void vec_front(struct vec* v, int size, void* data)
+void vec_front(struct vec* v, size_t size, void* data)
 {		
 	struct node* temp = calloc(1, sizeof(struct node));
 	if (NULL == temp)
@@ -235,7 +235,7 @@ void vec_copy(struct vec* dst, struct vec* src)
 		struct node* temp = src->head;
 		while (NULL != temp)
 		{
-			int len = temp->dataSize;
+			size_t len = temp->dataSize;
 			void* data = calloc(len + 1, sizeof(char));
 			if (NULL != data)
 			{

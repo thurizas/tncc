@@ -152,38 +152,43 @@ int main(int argc, char** argv)
 
 			if (((flags & FLAGS_IR) == FLAGS_IR) && ir_init(root, flags))
 			{
-			   // TODO : generate the intermediate representation... TACKY
-			   if(ir_genIR())
-			   {
-			     // TODO : modify cg_init to take the root of the IR tree...
-				 if (((flags & FLAGS_CODEGEN) == FLAGS_CODEGEN) && cg_init(root, flags))
-				 {
-				   if (cg_genAsm()) 
-				   {
-					 struct vec* asmList = cg_getAsm();
+			  bool bres = false;
+			  ir_genIR(NULL, &bres);
+			  if(bres)
+			  {
+			    struct vec* irlist = ir_getIR();
+			    printf("\n************************ IR ************************\n"); 
+				vec_print(irlist, ir_printIR, false);
 
-					 printf("\n************************ ASM ************************\n");
-					 cg_printAsm(asmList);
+				// TODO : modify cg_init to take the root of the IR tree...
+				if (((flags & FLAGS_CODEGEN) == FLAGS_CODEGEN) && cg_init(root, flags))
+				{
+				  if (cg_genAsm()) 
+				  {
+				    struct vec* asmList = cg_getAsm();
 
-					 if (ce_init(asmList, outName, flags))
-					 {
-					    ce_emit();
-						ce_deinit();
-					 }
-					 else
-					 {
-					   fprintf(stderr, "[-] failed to initialize the code emitter module\n");
-					 }
-				   }
-				   cg_deinit();
-				 }
-				 else
-				 {
-				   fprintf(stderr, "failed to initialize code generation module\n");
-				   res = ERR_CODEGEN_FAILED;
-				 }
-			     ir_deinit();
-			   }
+					printf("\n************************ ASM ************************\n");
+					cg_printAsm(asmList);
+
+					if (ce_init(asmList, outName, flags))
+					{
+					  ce_emit();
+					  ce_deinit();
+					}
+					else
+					{
+					  fprintf(stderr, "[-] failed to initialize the code emitter module\n");
+					}
+				  }
+				  cg_deinit();
+				}
+				else
+				{
+				  fprintf(stderr, "failed to initialize code generation module\n");
+				  res = ERR_CODEGEN_FAILED;
+				}
+			    ir_deinit();
+			  }
 			}
 			else
 			{

@@ -75,9 +75,11 @@ static struct astNode* parse_expression(struct vec* ast)
     }
     else if ((token != NULL) && (token->type == TOKEN_TYPE_TILDA))   // unon exp
     {
-        node = astNode_create(&(struct astNode) { .type = AST_TYPE_UNOP, .iVal = token->iVal });
+        node = astNode_create(&(struct astNode) { .type = AST_TYPE_EXPR, .stmt.type = AST_TYPE_UNOP, .iVal = token->iVal });
         vec_pop(tokens);
         struct astNode* expNode = parse_expression(NULL);
+        node->exp.op = tncc_calloc(3, sizeof(char));
+        strcpy(node->exp.op,"~");
         node->exp.left = expNode;
 
         if (NULL != ast)
@@ -89,9 +91,11 @@ static struct astNode* parse_expression(struct vec* ast)
     }
     else if ((token != NULL) && (token->type == TOKEN_TYPE_NEGATION))
     {
-        node = astNode_create(&(struct astNode) { .type = AST_TYPE_UNOP, .iVal = token->iVal });
+        node = astNode_create(&(struct astNode) { .type = AST_TYPE_EXPR, .stmt.type = AST_TYPE_UNOP, .iVal = token->iVal });
         vec_pop(tokens);
         struct astNode* expNode = parse_expression(NULL);
+        node->exp.op = tncc_calloc(3, sizeof(char));
+        strcpy(node->exp.op, "-");
         node->exp.left = expNode;
 
         if (NULL != ast)

@@ -6,7 +6,12 @@
 bool ir_init(struct astNode*, uint8_t);
 void ir_deinit();
 
-bool ir_genIR();
+struct vec* ir_getIR();
+
+//bool ir_genIR(struct astNode*, char**);
+char* ir_genIR(struct astNode*, bool*);
+
+void ir_printIR(void*);
 
 
 

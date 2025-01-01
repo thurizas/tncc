@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "util.h"
 #include "vector.h"
 #include "buffer.h"
 #include "node.h"
@@ -83,31 +84,23 @@ static bool cg_processStmt(struct stmt* pStmt)
             struct astNode* pNode = pStmt->returnStmt.exp;
             cg_evalExpression(pNode, &val);
 
-            char* buf = malloc(64 * sizeof(char));
-            if (NULL != buf)
-            {
-                struct buffer* line = NULL;
-                buf_init(&line);
+            char* buf = tncc_calloc(64, sizeof(char));
 
-                sprintf(buf, "%*smov    rax, %d\n", 4, "", val.iVal);
-                buf_insert(line, buf);
+            struct buffer* line = NULL;
+            buf_init(&line);
 
-                memset(buf, '\0', 15);
-                sprintf(buf, "%*sret\n", 4, "");
-                buf_insert(line, buf);
+            sprintf(buf, "%*smov    rax, %d\n", 4, "", val.iVal);
+            buf_insert(line, buf);
 
-                vec_push(asmInsts, (int)strlen(buf)+1, line);
+            memset(buf, '\0', 15);
+            sprintf(buf, "%*sret\n", 4, "");
+            buf_insert(line, buf);
 
-                free(buf);
+            vec_push(asmInsts, (int)strlen(buf)+1, line);
 
-                res = true;
-            }
-            else
-            {
-                fprintf(stderr, "[-] memory error in allocation memory for asm instructions");
-                res = false;
-                break;
-            }
+            free(buf);
+
+            res = true;
         }
         break;
 

@@ -21,7 +21,7 @@ struct astNode
 	{
 	  struct astNode* left;
 	  struct astNode* right;
-	  const char* op;
+	  char* op;
 	} exp;
 
 	struct stmt

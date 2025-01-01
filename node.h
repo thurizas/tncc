@@ -3,8 +3,8 @@
 
 struct node
 {
-    int   dataSize;
-    void* data;
+    size_t       dataSize;
+    void*        data;
     struct node* flink;
     struct node* blink;
 };
