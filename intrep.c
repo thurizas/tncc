@@ -37,7 +37,6 @@ void ir_deinit()
      if (NULL != ir_list)
     {
         vec_free(ir_list);
-        //free(ir_list);
     }
 }
 
@@ -46,44 +45,8 @@ struct vec* ir_getIR()
     return ir_list;
 }
 
-/*
-    type: 0 (program node           )
-    nodes:
-    {
-        {
-            type: 1 (function node          )
-            name       : main
-            return type: int
-            arguments  : void,
-            body       :
-            {
-                {
-                    type: 2 (statement node         )
-                    command    : return
-                    expression :
-                    {
-                        {
-                            type: 8 (unitary opertor        )
-                            operator: ~
-                            expresion:                             {
-                                type: 8 (unitary opertor        )
-                                operator: -
-                                expresion:                                 {
-                                    type: 4 (integer constant       )
-                                    value: 2
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
-
-*/
-//bool ir_genIR(struct astNode* astnode, char* tempTok)
+// IR format: mnemonic,dest,op1,op2 or mnemonic,dest,op1
 char* ir_genIR(struct astNode* astnode, bool* res)
 {
     *res = false;
@@ -92,8 +55,7 @@ char* ir_genIR(struct astNode* astnode, bool* res)
 
     if (NULL != astnode) node = astnode;      // if called recursively, used passed in node
 
-    // TODO : walk the ast tree and convert each node into TACKY
-
+    // walk the ast tree and convert each node into TACKY
     while(cont)
     {
         switch (node->type)
@@ -108,7 +70,7 @@ char* ir_genIR(struct astNode* astnode, bool* res)
                 {
                     struct astNode* astnode = vnode->data;
                     char* buf = tncc_calloc(255, sizeof(char));
-                    sprintf(buf, "(FUNCTION), (NAME)%s, (RETVAL)%s", astnode->fnct.name, astnode->fnct.retType);
+                    sprintf(buf, "(FUNCTION),%s,%s", astnode->fnct.name, astnode->fnct.retType);
                     vec_push(ir_list, strlen(buf), buf);
                     ir_genIR(astnode, res);
                     vnode = vnode->flink;
@@ -137,20 +99,19 @@ char* ir_genIR(struct astNode* astnode, bool* res)
                 char* leftArg = NULL, *rightArg = NULL, *dstTok = NULL;
 
                 vec_init(&instStk);
-                fprintf(stderr, "[?] got a expression \n");
-
+                
                 if ((node->exp.left != NULL) && (node->exp.right == NULL))     // unitary operator (-, ~)
                 {
-                    leftArg = ir_genIR(node->exp.left, res);
                     dstTok = tempName();
+                    leftArg = ir_genIR(node->exp.left, res);
                     char* buf = tncc_calloc(255, sizeof(char));
-                    sprintf(buf, "%s, %s, %s", node->exp.op, dstTok, leftArg);
+                    sprintf(buf, "%s,%s,%s", (strcmp(node->exp.op,"~") == 0 ? "COMP" : "NEG"), leftArg, dstTok);
                     vec_push(ir_list, strlen(buf), buf);
                 }
 
                 if (node->exp.right != NULL) ir_genIR(node->exp.right, res);
-
-     
+               
+                return dstTok;                   // return where the value is stored.
                 cont = false;
             }
 
@@ -167,7 +128,7 @@ char* ir_genIR(struct astNode* astnode, bool* res)
                         struct astNode* retVal = node->stmt.returnStmt.exp;
                         char* dstTok = ir_genIR(retVal, res);
                         char* buf = tncc_calloc(255, sizeof(char));
-                        sprintf(buf, "RET, %s", dstTok);
+                        sprintf(buf, "RET,%s", dstTok);
                         vec_push(ir_list, strlen(buf), buf);
 
                         cont = false;
@@ -179,15 +140,14 @@ char* ir_genIR(struct astNode* astnode, bool* res)
 
             case AST_TYPE_INTVAL:
             {
-                fprintf(stdout, "[?] got an interal literal\n");
                 int val = node->iVal;
-                char* tempTok = tempName();
+                char* dstTok = tempName();
 
                 char* buf = tncc_calloc(255, sizeof(char));
-                sprintf(buf, "MOV, %d, %s", val, tempTok);
+                sprintf(buf, "MOV,%s,%d", dstTok, val);
                 vec_push(ir_list, strlen(buf), buf);
 
-                return tempTok;
+                return dstTok;                                      // return where the value is stored
             }
             break;
         }

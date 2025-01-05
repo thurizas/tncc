@@ -160,8 +160,7 @@ int main(int argc, char** argv)
 			    printf("\n************************ IR ************************\n"); 
 				vec_print(irlist, ir_printIR, false);
 
-				// TODO : modify cg_init to take the root of the IR tree...
-				if (((flags & FLAGS_CODEGEN) == FLAGS_CODEGEN) && cg_init(root, flags))
+				if (((flags & FLAGS_CODEGEN) == FLAGS_CODEGEN) && cg_init(irlist, flags))
 				{
 				  if (cg_genAsm()) 
 				  {

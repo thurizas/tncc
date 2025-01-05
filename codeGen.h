@@ -20,7 +20,8 @@ struct val
 
 
 
-bool cg_init(struct astNode*, uint8_t);
+//bool cg_init(struct astNode*, uint8_t);
+bool cg_init(struct vec*, uint8_t);
 void cg_deinit();
 
 struct vec* cg_getAsm();

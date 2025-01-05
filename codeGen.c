@@ -10,33 +10,58 @@
 #include "node.h"
 #include "astNode.h"
 
+#define REG_CNT        8                            // number of general purpose registers available
+#define PROLOG_LEN    48
+#define MAX_FNCTS     64                            // maximum functions defined in one compilation unit 
+#define ASM_INST_LEN 128                            // length of an assembly instruction
 
-static struct vec* asmInsts = NULL;              // vector to hold list of assembly instructions
-static struct astNode* root = NULL;
+const char* prolog = "\tpush rbp\n\tmov rbp rsp\n"; // function prolog excluding stack manipulation
 
-bool cg_init(struct astNode* _root, uint8_t flags)
-//bool cg_init(struct astNode* _root, uint8_t flags)
+static struct vec* asmInsts = NULL;                 // vector to hold list of assembly instructions
+static struct vec* irlist = NULL;                   // local copy of intermediate representation
+static struct vec* symTab = NULL;                   // symbol table
+static bool regs[REG_CNT] = { false };              // mapping of registers availabler8 through r15 are general purpose
+
+struct tblEntry
+{
+    char* tmpVar;
+    char* reg;
+};
+
+bool cg_init(struct vec* ir_list, uint8_t flags)
 {
     bool res = false;
 
-    if (NULL != _root)
+    if (NULL != ir_list)
     {
-        root = _root;                                    // get a local copy of AST
+        irlist = ir_list;                        // get a local copy of the IR
         
         vec_init(&asmInsts);
+        vec_init(&symTab);
     
-        if (asmInsts != NULL)
+        if ((asmInsts != NULL) && (symTab != NULL))
         {
             res = true;
         }
         else
         {
-            fprintf(stderr, "[-] failed to initialize assembly instruction list\n");
+            if (asmInsts == NULL)
+            {
+                fprintf(stderr, "[-] failed to initialize assembly instruction list\n");
+                exitFailure("failed to initialize assembly instrution list\n", -ERR_CODEGEN_FAILED);
+            }
+
+            if (symTab == NULL)
+            {
+                fprintf(stderr, "[-] failed to initialize symbol table \n");
+                exitFailure("failed to initialize symbol table\n", -ERR_CODEGEN_FAILED);
+            }
+            
         }
     }
     else
     {
-        fprintf(stderr, "[-] AST structure in NULL.");
+        fprintf(stderr, "[-] Intermediate Representation list is NULL.");
     }
 
     return res;
@@ -44,168 +69,328 @@ bool cg_init(struct astNode* _root, uint8_t flags)
 
 void cg_deinit()
 {
-    struct buffer* line = NULL;   
-    vec_setCurrentNdx(asmInsts, 0);
+    struct node* node = NULL;
+    node = asmInsts->head;
 
-    line = vec_getCurrent(asmInsts);
-
-    while (NULL != line)
+    fprintf(stderr, "[+] freeing assembly instruction list\n");
+    while (node != NULL)
     {
-        buf_free(&line);
-
-        line = vec_getCurrent(asmInsts);
+        char* line = node->data;
+        if (NULL != line) { free(line); line = NULL; }
+        node = node->flink;
     }
+
+    node = symTab->head;
+
+    fprintf(stderr, "[+] freeing symbol table entries\n");
+    while (node != NULL)
+    {
+        struct tblEntry* entry = node->data;
+        if(NULL != entry)
+        {
+            free(entry->tmpVar);
+            free(entry->reg);
+            free(entry);
+        }
+
+        node = node->flink;
+    }
+
+
     vec_free(asmInsts);
 }
 
-static bool cg_evalExpression(struct astNode* pNode, struct val* pVal)
-{
-    bool res = false;
 
-    if (pNode->type == AST_TYPE_INTVAL)
-    {
-        pVal->type = INTVAL;
-        pVal->iVal = pNode->iVal;
-    }
 
-    return res;
+// PROGRAM - build list of exported functions .globl <fname>
+// FUNCTION - add label '<fname>:'
+//          - add prolog  push rbp; mov rbp rsp; sub rsp <stack size>
+// RET      - move return value to rax
+//            .section .note.GNU-stack,"",@progbits
+/*
+[? ] ir line is : (PROGRAM)
+[? ] ir line is : (FUNCTION),main, int
+[? ] ir line is : MOV, tmp.002, 2
+[? ] ir line is : NEG, tmp.002, tmp.001
+[? ] ir line is : COMP, tmp.001, tmp.000
+[? ] ir line is : RET, tmp.000
+*/
+
+// extracts a function name for an IR FUNCTION ('(FUNCTION),main, int') line
+char* getFnctName(char* line)
+{ 
+    char* loc;
+
+    loc = strchr(line, ',');            // points to first comma
+    char* end = strchr(loc + 1, ',');   // points to where name ends
+
+    int64_t startNdx = loc - line + 1;  // starting index of name
+    size_t len = end - loc - 1;           // length of name 
+
+    char* fname = tncc_calloc(len, sizeof(char));
+    strncpy(fname, line + startNdx, len);
+    fname[len] = '\0';
+
+    return fname;
 }
 
-static bool cg_processStmt(struct stmt* pStmt)
+static void printSymTable()
 {
-    bool res = false;
+    struct node* node = NULL;
+    struct tblEntry* entry = NULL;
 
-    switch (pStmt->type)
+    node = symTab->head;
+    fprintf(stderr, "symbol table is: ");
+
+    if (symTab->cntItems == 0)
     {
-        case AST_STMT_TYPE_RETURN:
+        fprintf(stderr, "empty");
+    }
+    else
+    {
+        while (NULL != node)
         {
-            struct val val;
-            // evaluate the return value
-            struct astNode* pNode = pStmt->returnStmt.exp;
-            cg_evalExpression(pNode, &val);
-
-            char* buf = tncc_calloc(64, sizeof(char));
-
-            struct buffer* line = NULL;
-            buf_init(&line);
-
-            sprintf(buf, "%*smov    rax, %d\n", 4, "", val.iVal);
-            buf_insert(line, buf);
-
-            memset(buf, '\0', 15);
-            sprintf(buf, "%*sret\n", 4, "");
-            buf_insert(line, buf);
-
-            vec_push(asmInsts, (int)strlen(buf)+1, line);
-
-            free(buf);
-
-            res = true;
+            entry = node->data;
+            fprintf(stderr, "%s -> %s, ", entry->tmpVar, entry->reg);
+            node = node->flink;
         }
-        break;
-
-        default:
-            fprintf(stderr, "[-] unknown statement type\n");
     }
+    fprintf(stderr, "\n");
 
-    return res;
 }
 
-static bool cg_processFnct(struct fnct* fnct)
+// find first unused register and return its name 
+static genRegister(char** reg)
 {
-    bool res = false;
+    uint32_t ndx;
 
-    // generate label for function
-    struct buffer* label = NULL;
-    buf_init(&label);
-    buf_insert(label, fnct->name);
-    buf_append(label, ':');
-    buf_append(label, '\n');
-    vec_push(asmInsts, buf_len(label), label);
+    if (NULL != *reg) { free(*reg); *reg = NULL; }
 
-    // generate function body
-    vec_setCurrentNdx(fnct->stmts, 0);
-    struct astNode* node = vec_getCurrent(fnct->stmts);
-    while (NULL != node)
+    for (ndx = 0; ndx < REG_CNT; ndx++)
     {
-        switch (node->type)
-        {
-            case AST_TYPE_STMT:
-                res = cg_processStmt(&(node->stmt));
-                break;
-        }
-
-        
-        node = vec_getCurrent(fnct->stmts);
+        if (!regs[ndx]) { regs[ndx] = true;  break;}
     }
 
-    return res;
+    if (ndx == REG_CNT)
+    {
+        fprintf(stderr, "[-] no register available for use for temporary variables\n");
+        exitFailure("no register available for temporary vaiable", -ERR_CODEGEN_FAILED);
+    }
+
+    // 0->r8, 1->r9, 2->r10, ...., 7->r15
+    *reg = tncc_calloc(5, sizeof(char));
+    snprintf(*reg, 4, "r%d", (ndx+8));
 }
+
+void resetRegisters()
+{
+    for (uint32_t ndx = 0; ndx < REG_CNT; ndx++)
+    {
+        regs[ndx] = false;
+    }
+}
+
+
+static void updateMapping(char* tmpVar, char* reg)
+{
+    struct tblEntry* entry = tncc_calloc(1, sizeof(struct tblEntry));
+    entry->tmpVar = tncc_calloc(sizeof(tmpVar) + 1, sizeof(char));
+    strncpy(entry->tmpVar, tmpVar, sizeof(tmpVar));
+    entry->reg = tncc_calloc(sizeof(reg) + 1, sizeof(char));
+    strncpy(entry->reg, reg, sizeof(reg));
+    vec_push(symTab, sizeof(struct tblEntry), (void*)entry);
+}
+
+static char* lookUpTmpVar(char* tmpVar)
+{
+    char* reg = NULL;
+
+    if (symTab != NULL)
+    {
+        if (!((symTab->head == NULL) && (symTab->tail == NULL)))
+        {
+            struct node* node = symTab->head;
+            while (node != NULL)
+            {
+                struct tblEntry* entry = node->data;
+                if (strcmp(entry->tmpVar, tmpVar) == 0)
+                {
+                    reg = entry->reg;
+                    break;
+                }
+                node = node->flink;
+            }
+        }
+        else
+        {
+            fprintf(stderr, "[-] symbol table is empty\n");
+        }
+    }
+    else
+    {
+        fprintf(stderr, "[-] symbol table does not exist\n");
+        exitFailure("no symbol table\n", -ERR_CODEGEN_FAILED);
+    }
+
+    return reg;
+}
+
+
 
 bool cg_genAsm()
 {
+    char** fnctName = tncc_calloc(MAX_FNCTS, sizeof(char*));
+    uint32_t fnctCnt = 0;
     bool res = false;
-
-    if ((NULL != root))
+  
+    char* line = NULL;
+    
+    struct node* node = irlist->head;
+    while((NULL != node) && (node->data != NULL))
     {
-        uint32_t type = root->type;
-        switch (type)
+        line = node->data;
+        if (strcmp(line, "(PROGRAM)") == 0)
         {
-            case AST_TYPE_PROGRAM:
+             
+        }
+        else if (strstr(line, "(FUNCTION)") != NULL)
+        {
+            resetRegisters();                           // reset register mappings.
+
+            char* fname = getFnctName(line);
+            fnctName[fnctCnt++] = fname;
+            
+            // generate function label...
+            char* buf = tncc_calloc(ASM_INST_LEN, sizeof(char));
+            snprintf(buf, ASM_INST_LEN-1, "\n\n%s:\n", fname);
+            vec_push(asmInsts, ASM_INST_LEN, buf);
+            
+            // add function prolog
+            int localVarCnt = 0;
+            char* bufProlog = tncc_calloc(ASM_INST_LEN, sizeof(char));
+            snprintf(bufProlog, ASM_INST_LEN-1, "%s\n", prolog);
+            if (localVarCnt > 0)
+            {
+                strncat(bufProlog, "\tsub rsp 0x0\n", 17);
+                // TODO : add space requited to bufProlog
+            }
+            vec_push(asmInsts, ASM_INST_LEN, bufProlog);
+
+            // iterate through IR list till a new function line or empty
+            node = node->flink;
+            while ((node != NULL) && (node->data != NULL) && (strstr(node->data,"(FUNCTION)") == NULL))
+            {
+                char* line = (char*)node->data;
+                char* tokens[4] = { 0 };
+                uint32_t ndx = 0;
+                uint32_t startNdx = 0;
+
+                char* loc = strstr(line, ",");
+                while (NULL != loc)            // TODO : tokenize IR line ... get opcode, dest loc, op1, op2
                 {
-                    struct buffer* fnctList = NULL;
-                    buf_init(&fnctList);
-                    
-                    if (NULL != fnctList)
+                    uint32_t endNdx = loc - line;
+                    line[endNdx] = '\0';
+                    tokens[ndx++] = line;
+                    line = &line[endNdx + 1];
+                    loc = strstr(line, ",");
+                }
+                tokens[ndx] = line;
+
+                //ndx = 0;
+                //while (tokens[ndx] != NULL)
+                //{
+                //    fprintf(stderr, "    [?] token is %s\n", tokens[ndx++]);
+                //}
+                //ndx = 0;
+                //fprintf(stderr, "avaliable registers are: ");
+                //for (ndx = 0; ndx < REG_CNT; ndx++)
+                //{
+                //    fprintf(stderr, "%d, ", regs[ndx]);
+                //}
+                //fprintf(stderr, "\n");
+                //printSymTable();
+
+                if (strcmp(tokens[0], "MOV") == 0)        // mov <reg>,<reg> or mov <reg>,<mem> or mov <reg>,<imm>
+                {                    
+                    char* reg = NULL;
+                    char* buf = tncc_calloc(ASM_INST_LEN, sizeof(char));
+
+                    reg = lookUpTmpVar(tokens[1]);
+                    if (NULL == reg)
                     {
-                        struct prog p = root->prog;
-
-                        if ((NULL != p.fncts) && (vec_len(p.fncts) > 0))
-                        {
-                            vec_setCurrentNdx(p.fncts, 0);
-                            struct astNode* n = NULL;
-                            while (NULL != (n = vec_getCurrent(p.fncts)))
-                            {
-                                struct fnct* f = &(n->fnct);
-                                char* name = f->name;
-                                buf_insert(fnctList, "\n.globl ");
-                                buf_insert(fnctList, name);
-                                buf_insert(fnctList, "\n\n");
-
-                                if (!cg_processFnct(f))
-                                {
-                                    fprintf(stderr, "[-] assembly generation failed at line: %d, col: %d\n", root->pos.line, root->pos.col);
-                                }
-                            }
-
-                            // push fnctList to beginning of asmInsts
-                            vec_front(asmInsts, buf_len(fnctList), fnctList);
-
-
-                        }
-                        else
-                        {
-                            fprintf(stdout, "Warning: program has no functions");
-                        }
+                        genRegister(&reg);
+                        updateMapping(tokens[1], reg);
                     }
+                   
+                    snprintf(buf, ASM_INST_LEN, "\t%10s\t %3s,%s\n", "mov", reg, tokens[2]);
+                    vec_push(asmInsts, strlen(buf), (void*)buf);
                 }
-
-                break;
-
-            default:
+                else if (strcmp(tokens[0], "NEG") == 0)   // neg <reg> or neg <mem>
                 {
-                    fprintf(stderr, "[-] unknow AST node type: %d\n", root->type);
+                    char* reg = NULL;
+                    char* buf = tncc_calloc(ASM_INST_LEN, sizeof(char));
+
+                    reg = lookUpTmpVar(tokens[1]);
+                    if (NULL == reg)
+                    {
+                        genRegister(&reg);
+                        updateMapping(tokens[1], reg);
+                    }
+                    updateMapping(tokens[2], reg);             // x86 uses a single register in inst
+                    snprintf(buf, ASM_INST_LEN, "\t%10s\t %3s\n", "neg", reg);
+                    vec_push(asmInsts, strlen(buf), (void*)buf);
+                }
+                else if (strcmp(tokens[0], "COMP") == 0)  // not <reg> or not <mem>
+                {
+                    char* reg = NULL;
+                    char* buf = tncc_calloc(ASM_INST_LEN, sizeof(char));
+
+                    reg = lookUpTmpVar(tokens[1]);
+                    if (NULL == reg)
+                    {
+                        genRegister(&reg);
+                        updateMapping(tokens[1], reg);
+                    }
+                    updateMapping(tokens[2], reg);             // x86 uses a single register in inst
+                    snprintf(buf, ASM_INST_LEN, "\t%10s\t %3s\n", "not", reg);
+                    vec_push(asmInsts, strlen(buf), (void*)buf);
+                }
+                else if (strcmp(tokens[0], "RET") == 0)   // mov rax, reg; ret 
+                {
+                    char* reg = NULL;
+                    char* buf = tncc_calloc(ASM_INST_LEN, sizeof(char));
+
+                    reg = lookUpTmpVar(tokens[1]);
+
+                    snprintf(buf, ASM_INST_LEN, "\t%10s\t %3s, %s\n\t%10s\n", "mov", "rax", reg, "ret");
+                    vec_push(asmInsts, strlen(buf), (void*)buf);
+                }
+                else
+                {
+                    fprintf(stderr, "unknown opcode in IR, opcode is: %s\n", tokens[0]);
+                    exitFailure("unknown opcode in code generation", -ERR_CODEGEN_FAILED);
                 }
 
-                break;
+                node = node->flink;
+            }
+        }
+        else
+        {
+            fprintf(stderr, "Unexpected line in IR: %s\n", line);
+            exitFailure("error generating ASM", -ERR_CODEGEN_FAILED);
         }
 
-        struct buffer* bufTail = NULL;
-        buf_init(&bufTail);
-        buf_insert(bufTail, "\n.section .note.GNU-stack, \"\",@progbits");
-        vec_push(asmInsts, buf_len(bufTail), bufTail);
-        res = true;
+        if(node != NULL) node = node->flink;
     }
+
+    // add exported function names to beginning of asm list.
+    for (int32_t ndx = fnctCnt-1; ndx >= 0; ndx--)
+    {
+        char* buf = tncc_calloc(ASM_INST_LEN, sizeof(char));  // .globl <
+        snprintf(buf, ASM_INST_LEN - 1, ".globl %s", fnctName[ndx]);
+        vec_front(asmInsts, ASM_INST_LEN, (void*)buf);
+    }
+    res = true;
 
     return res;
 }
@@ -218,13 +403,15 @@ struct vec* cg_getAsm()
 
 void cg_printAsm(struct vec* asmListing)
 {
-    struct buffer* line = NULL;
-    vec_setCurrentNdx(asmListing, 0);
+    struct node* node = NULL;
 
-    line = vec_getCurrent(asmListing);
-    while (NULL != line)
+    node = asmListing->head;
+
+    while (node != NULL)
     {
-        buf_print(line);
-        line = vec_getCurrent(asmListing);
+        char* line = node->data;
+        fprintf(stdout, "%s\n", line);
+
+        node = node->flink;
     }
 }

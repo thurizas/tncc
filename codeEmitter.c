@@ -1,5 +1,6 @@
 #include "codeEmitter.h"
 #include "vector.h"
+#include "node.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -110,38 +111,34 @@ void ce_deinit()
 
 bool ce_emit()
 {
+    struct node* node = NULL;
     bool res = false;
     int  ret = EOF;
-
-    struct buffer* line = NULL;
-    vec_setCurrentNdx(asmInsts, 0);
-
-    line = vec_getCurrent(asmInsts);
-    while (NULL != line)
+    
+    node = asmInsts->head;
+    while (NULL != node)
     {
+        char* line = node->data;
         if (line != NULL)
         {
-            if (line->data != NULL)
+            for (uint32_t ndx = 0; ndx < strlen(line); ndx++)
             {
-                for (uint32_t ndx = 0; ndx < line->curSize; ndx++)
+                ret = fputc(line[ndx], fd);
+                if (ret == EOF)
                 {
-                    ret = fputc(line->data[ndx], fd);
-                    if (ret == EOF)
-                    {
                         int err = errno;
                         fprintf(stderr, "[-] error writting file, error: %d(%s)\n", err, strerror(err));
                         goto ERR_EXIT;
-                    }
                 }
-            }
-            else
-            {
-                fprintf(stdout, "[-] malformed line in assembly output\n");
-                goto ERR_EXIT;
+
             }
         }
-
-        line = vec_getCurrent(asmInsts);
+        else
+        {
+            fprintf(stdout, "[-] malformed line in assembly output\n");
+            goto ERR_EXIT;
+        }
+        node = node->flink;
     }
 
     res = true;
