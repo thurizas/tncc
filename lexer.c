@@ -177,6 +177,9 @@ bool lexer_lex()
 		  col = 1;
 		  break;
 
+		case '\r':
+			break;
+
 		case '0':
 		case '1':
 		case '2':

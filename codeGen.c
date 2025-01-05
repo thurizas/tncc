@@ -160,7 +160,7 @@ static void printSymTable()
 }
 
 // find first unused register and return its name 
-static genRegister(char** reg)
+static void genRegister(char** reg)
 {
     uint32_t ndx;
 
@@ -182,7 +182,7 @@ static genRegister(char** reg)
     snprintf(*reg, 4, "r%d", (ndx+8));
 }
 
-void resetRegisters()
+static void resetRegisters()
 {
     for (uint32_t ndx = 0; ndx < REG_CNT; ndx++)
     {
@@ -194,10 +194,10 @@ void resetRegisters()
 static void updateMapping(char* tmpVar, char* reg)
 {
     struct tblEntry* entry = tncc_calloc(1, sizeof(struct tblEntry));
-    entry->tmpVar = tncc_calloc(sizeof(tmpVar) + 1, sizeof(char));
-    strncpy(entry->tmpVar, tmpVar, sizeof(tmpVar));
-    entry->reg = tncc_calloc(sizeof(reg) + 1, sizeof(char));
-    strncpy(entry->reg, reg, sizeof(reg));
+    entry->tmpVar = tncc_calloc(strlen(tmpVar) + 1, sizeof(char));
+    strncpy(entry->tmpVar, tmpVar, strlen(tmpVar));
+    entry->reg = tncc_calloc(strlen(reg) + 1, sizeof(char));
+    strncpy(entry->reg, reg, strlen(reg));
     vec_push(symTab, sizeof(struct tblEntry), (void*)entry);
 }
 
