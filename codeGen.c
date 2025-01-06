@@ -70,9 +70,9 @@ bool cg_init(struct vec* ir_list, uint8_t flags)
 void cg_deinit()
 {
     struct node* node = NULL;
+    
+    fprintf(stderr, "[+] freeing assembly instruction list\n");    
     node = asmInsts->head;
-
-    fprintf(stderr, "[+] freeing assembly instruction list\n");
     while (node != NULL)
     {
         char* line = node->data;
@@ -80,9 +80,8 @@ void cg_deinit()
         node = node->flink;
     }
 
-    node = symTab->head;
-
     fprintf(stderr, "[+] freeing symbol table entries\n");
+    node = symTab->head;
     while (node != NULL)
     {
         struct tblEntry* entry = node->data;
@@ -394,9 +393,12 @@ bool cg_genAsm()
     // free function name list...
     if(fnctName != NULL)
     {
-        for (int32_t ndx = fnctCnt - 1; ndx >= 0; ndx--)
+        for (uint32_t ndx = 0; ndx < fnctCnt; ndx++)
         {
-            if (fnctName[ndx] != NULL) { free(fnctName[ndx]); fnctName[ndx] = NULL;  }
+            if (fnctName[ndx] != NULL) 
+            { 
+                free(fnctName[ndx]); 
+                fnctName[ndx] = NULL;  }
         }
 
         free(fnctName);

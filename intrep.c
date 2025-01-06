@@ -37,6 +37,13 @@ void ir_deinit()
     if (NULL != ir_list)
     {
         fprintf(stderr, "[+] freeing intermediate representation list\n");
+        struct node* node = ir_list->head;
+        while (NULL != node)
+        {
+            free(node->data);
+            node->data = NULL;
+            node = node->flink;
+        }
         vec_free(ir_list);
     }
 }
@@ -96,10 +103,10 @@ char* ir_genIR(struct astNode* astnode, bool* res)
 
             case AST_TYPE_EXPR:
             {
-                struct vec* instStk = NULL;
+                //struct vec* instStk = NULL;
                 char* leftArg = NULL, *rightArg = NULL, *dstTok = NULL;
 
-                vec_init(&instStk);
+                //vec_init(&instStk);
                 
                 if ((node->exp.left != NULL) && (node->exp.right == NULL))     // unitary operator (-, ~)
                 {
@@ -108,6 +115,9 @@ char* ir_genIR(struct astNode* astnode, bool* res)
                     char* buf = tncc_calloc(255, sizeof(char));
                     sprintf(buf, "%s,%s,%s", (strcmp(node->exp.op,"~") == 0 ? "COMP" : "NEG"), leftArg, dstTok);
                     vec_push(ir_list, strlen(buf), buf);
+
+                    if (NULL != dstTok) { free(dstTok); dstTok = NULL; }
+                    if (NULL != leftArg) { free(leftArg); leftArg = NULL; }
                 }
 
                 if (node->exp.right != NULL) ir_genIR(node->exp.right, res);
@@ -131,6 +141,8 @@ char* ir_genIR(struct astNode* astnode, bool* res)
                         char* buf = tncc_calloc(255, sizeof(char));
                         sprintf(buf, "RET,%s", dstTok);
                         vec_push(ir_list, strlen(buf), buf);
+
+                        if (NULL != dstTok) { free(dstTok); dstTok = NULL; }
 
                         cont = false;
                     }
