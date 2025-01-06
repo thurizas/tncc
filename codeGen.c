@@ -121,13 +121,13 @@ char* getFnctName(char* line)
 { 
     char* loc;
 
-    loc = strchr(line, ',');            // points to first comma
-    char* end = strchr(loc + 1, ',');   // points to where name ends
+    loc = strchr(line, ',');              // points to first comma
+    char* end = strchr(loc + 1, ',');     // points to where name ends
 
-    int64_t startNdx = loc - line + 1;  // starting index of name
+    int64_t startNdx = loc - line + 1;    // starting index of name
     size_t len = end - loc - 1;           // length of name 
 
-    char* fname = tncc_calloc(len, sizeof(char));
+    char* fname = tncc_calloc(len+1, sizeof(char));
     strncpy(fname, line + startNdx, len);
     fname[len] = '\0';
 
