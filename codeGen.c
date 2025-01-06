@@ -127,7 +127,7 @@ char* getFnctName(char* line)
     int64_t startNdx = loc - line + 1;    // starting index of name
     size_t len = end - loc - 1;           // length of name 
 
-    char* fname = tncc_calloc(len+1, sizeof(char));
+    char* fname = tncc_calloc(len+1 , sizeof(char));
     strncpy(fname, line + startNdx, len);
     fname[len] = '\0';
 
@@ -389,6 +389,17 @@ bool cg_genAsm()
         char* buf = tncc_calloc(ASM_INST_LEN, sizeof(char));  // .globl <
         snprintf(buf, ASM_INST_LEN - 1, ".globl %s", fnctName[ndx]);
         vec_front(asmInsts, ASM_INST_LEN, (void*)buf);
+    }
+
+    // free function name list...
+    if(fnctName != NULL)
+    {
+        for (int32_t ndx = fnctCnt - 1; ndx >= 0; ndx--)
+        {
+            if (fnctName[ndx] != NULL) { free(fnctName[ndx]); fnctName[ndx] = NULL;  }
+        }
+
+        free(fnctName);
     }
     res = true;
 

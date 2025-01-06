@@ -34,8 +34,9 @@ bool ir_init(struct astNode* _root, uint8_t flags)
 
 void ir_deinit()
 {
-     if (NULL != ir_list)
+    if (NULL != ir_list)
     {
+        fprintf(stderr, "[+] freeing intermediate representation list\n");
         vec_free(ir_list);
     }
 }

@@ -81,7 +81,7 @@ void astNode_delProg(struct prog prog)
 
 void astNode_delete(struct astNode* _node)
 {
-    fprintf(stdout, "[+] deleteing the AST structure");
+    fprintf(stdout, "[+] deleteing the AST structure\n");
     switch (_node->type)
     {
     case AST_TYPE_EXPR: astNode_delExpr(_node); break;

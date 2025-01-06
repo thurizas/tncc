@@ -258,6 +258,7 @@ void tokens_clear(struct vec* tokens)
 {
   struct token*    token;
 
+  fprintf(stderr, "[+] deleting token vector\n");
   if(tokens->cntItems > 0)
   {
 	vec_setCurrentNdx(tokens, 0);
