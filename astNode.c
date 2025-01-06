@@ -19,14 +19,9 @@ struct astNode* astNode_create(struct astNode* _node)
 void astNode_delExpr(struct astNode* _node)
 {
     struct exp e = _node->exp;
-    if(NULL != e.left) 
-        astNode_delExpr(e.left);
-    if(NULL != e.right) 
-        astNode_delExpr(e.right);
-    if (NULL != e.op) 
-    {
-        free(e.op); e.op = NULL;
-    }  // gkh add
+    if(NULL != e.left) astNode_delExpr(e.left);
+    if(NULL != e.right)  astNode_delExpr(e.right);
+    if (NULL != e.op) { free(e.op); e.op = NULL; }  
 
     if (NULL != _node) { free(_node); _node = NULL;}
 }

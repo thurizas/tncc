@@ -87,8 +87,8 @@ void cg_deinit()
         struct tblEntry* entry = node->data;
         if(NULL != entry)
         {
-            free(entry->tmpVar);
-            free(entry->reg);
+            if (NULL != entry->tmpVar) { free(entry->tmpVar); entry->tmpVar = NULL;}
+            if (NULL != entry->tmpVar) { free(entry->reg); entry->reg = NULL;}
             free(entry);
         }
 

@@ -103,10 +103,7 @@ char* ir_genIR(struct astNode* astnode, bool* res)
 
             case AST_TYPE_EXPR:
             {
-                //struct vec* instStk = NULL;
                 char* leftArg = NULL, *rightArg = NULL, *dstTok = NULL;
-
-                //vec_init(&instStk);
                 
                 if ((node->exp.left != NULL) && (node->exp.right == NULL))     // unitary operator (-, ~)
                 {
@@ -116,7 +113,7 @@ char* ir_genIR(struct astNode* astnode, bool* res)
                     sprintf(buf, "%s,%s,%s", (strcmp(node->exp.op,"~") == 0 ? "COMP" : "NEG"), leftArg, dstTok);
                     vec_push(ir_list, strlen(buf), buf);
 
-                    if (NULL != dstTok) { free(dstTok); dstTok = NULL; }
+                    //if (NULL != dstTok) { free(dstTok); dstTok = NULL; }
                     if (NULL != leftArg) { free(leftArg); leftArg = NULL; }
                 }
 

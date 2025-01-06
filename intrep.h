@@ -8,7 +8,6 @@ void ir_deinit();
 
 struct vec* ir_getIR();
 
-//bool ir_genIR(struct astNode*, char**);
 char* ir_genIR(struct astNode*, bool*);
 
 void ir_printIR(void*);
