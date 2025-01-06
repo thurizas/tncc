@@ -11,7 +11,6 @@
 struct astNode* astNode_create(struct astNode* _node)
 {     
     struct astNode* node = tncc_calloc(1, sizeof(struct astNode));
-    //memset(node, 0, sizeof(struct astNode));
     memcpy(node, _node, sizeof(struct astNode));
 
     return node;
@@ -20,10 +19,16 @@ struct astNode* astNode_create(struct astNode* _node)
 void astNode_delExpr(struct astNode* _node)
 {
     struct exp e = _node->exp;
-    if(NULL != e.left) astNode_delete(e.left);
-    if(NULL != e.right) astNode_delete(e.right);
+    if(NULL != e.left) 
+        astNode_delExpr(e.left);
+    if(NULL != e.right) 
+        astNode_delExpr(e.right);
+    if (NULL != e.op) 
+    {
+        free(e.op); e.op = NULL;
+    }  // gkh add
 
-    free(_node);
+    if (NULL != _node) { free(_node); _node = NULL;}
 }
 
 void astNode_delStmt(struct astNode* _node)
@@ -31,7 +36,9 @@ void astNode_delStmt(struct astNode* _node)
     struct stmt s = _node->stmt;
     switch (s.type)
     {
-        case AST_STMT_TYPE_RETURN: astNode_delete(s.returnStmt.exp); break;
+        case AST_STMT_TYPE_RETURN: 
+            astNode_delExpr(s.returnStmt.exp); 
+            break;
     }
 
     free(_node);
@@ -53,13 +60,13 @@ void astNode_delFnct(struct astNode* _node)
     } 
     vec_free(f.args);
 
-    // iterate over vector of statements and free individual statements
-    //item = f.stmts->head;
-    //while (NULL != item)
-    //{
-    //    astNode_delStmt(item->data);
-    //    item = item->flink;
-    //}
+    // delete each statement node in function..
+    struct node* node = f.stmts->head;
+    while (NULL != node)
+    {
+        astNode_delStmt(node->data);
+        node = node->blink;
+    }
     vec_free(f.stmts);
 
     free(_node);
@@ -88,10 +95,15 @@ void astNode_delete(struct astNode* _node)
     case AST_TYPE_STMT: astNode_delStmt(_node); break;
     case AST_TYPE_FUNCTION: astNode_delFnct(_node); break;
     case AST_TYPE_PROGRAM: astNode_delProg(_node->prog); break;
+    case AST_TYPE_INTVAL: astNode_delExpr(_node); break;
     default: printf("***Unknown AST type: %d\n", _node->type);
     }
 
-    free(_node);
+    if (NULL != _node) 
+    { 
+        free(_node); 
+        _node = NULL; 
+    }
 }
 
 
