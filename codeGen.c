@@ -95,8 +95,8 @@ void cg_deinit()
         node = node->flink;
     }
 
-
     vec_free(asmInsts);
+    vec_free(symTab);
 }
 
 
@@ -323,6 +323,8 @@ bool cg_genAsm()
                    
                     snprintf(buf, ASM_INST_LEN, "\t%10s\t %3s,%s\n", "mov", reg, tokens[2]);
                     vec_push(asmInsts, strlen(buf), (void*)buf);
+
+                    if (NULL != reg) { free(reg); reg = NULL; }
                 }
                 else if (strcmp(tokens[0], "NEG") == 0)   // neg <reg> or neg <mem>
                 {
@@ -353,6 +355,8 @@ bool cg_genAsm()
                     updateMapping(tokens[2], reg);             // x86 uses a single register in inst
                     snprintf(buf, ASM_INST_LEN, "\t%10s\t %3s\n", "not", reg);
                     vec_push(asmInsts, strlen(buf), (void*)buf);
+
+                    if (NULL != reg) { free(reg); reg = NULL; }
                 }
                 else if (strcmp(tokens[0], "RET") == 0)   // mov rax, reg; ret 
                 {

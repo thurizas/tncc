@@ -31,7 +31,7 @@ void vec_init(struct vec** v)
 
 void vec_free(struct vec* v)
 {
-  if((v->tail != NULL) && (v->head != NULL))              // list is note empty
+  if((v->tail != NULL) && (v->head != NULL))              // list is not empty
   {
 	struct node* t = v->tail;
 	do
@@ -42,6 +42,7 @@ void vec_free(struct vec* v)
 	} while((t = v->tail) != NULL);
   }
 
+  memset((void*)v, 0, sizeof(struct vec));
   free(v);
 }
 
