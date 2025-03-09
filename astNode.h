@@ -21,7 +21,7 @@ struct astNode
 	{
 	  struct astNode* left;
 	  struct astNode* right;
-	  char* op;
+	  char op[3];                 // allow for multi-token operators, eg. ++ or ->
 	} exp;
 
 	struct stmt

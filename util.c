@@ -35,7 +35,7 @@ void printAST(struct vec* ast)
         }
          
         vec_setCurrentNdx(ast, 0);
-        struct astNode* node = vec_peekCurrent(ast);
+        struct astNode* node = vec_getCurrent(ast);
 
         printf("node type is: %d[%s] \n", node->type, types[node->type]);
 

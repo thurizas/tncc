@@ -72,14 +72,14 @@ char* ir_genIR(struct astNode* astnode, bool* res)
             {
                 char* buf = tncc_calloc(11, sizeof(char));
                 strncat(buf, "(PROGRAM)", 10);
-                vec_push(ir_list, 11, buf);
+                vec_enqueue(ir_list, 11, buf);
                 struct node* vnode = root->prog.fncts->head;
                 while (vnode != NULL)
                 {
                     struct astNode* astnode = vnode->data;
                     char* buf = tncc_calloc(255, sizeof(char));
                     sprintf(buf, "(FUNCTION),%s,%s", astnode->fnct.name, astnode->fnct.retType);
-                    vec_push(ir_list, strlen(buf), buf);
+                    vec_enqueue(ir_list, strlen(buf), buf);
                     ir_genIR(astnode, res);
                     vnode = vnode->flink;
                 }
@@ -111,7 +111,7 @@ char* ir_genIR(struct astNode* astnode, bool* res)
                     leftArg = ir_genIR(node->exp.left, res);
                     char* buf = tncc_calloc(255, sizeof(char));
                     sprintf(buf, "%s,%s,%s", (strcmp(node->exp.op,"~") == 0 ? "COMP" : "NEG"), leftArg, dstTok);
-                    vec_push(ir_list, strlen(buf), buf);
+                    vec_enqueue(ir_list, strlen(buf), buf);
 
                     //if (NULL != dstTok) { free(dstTok); dstTok = NULL; }
                     if (NULL != leftArg) { free(leftArg); leftArg = NULL; }
@@ -137,7 +137,7 @@ char* ir_genIR(struct astNode* astnode, bool* res)
                         char* dstTok = ir_genIR(retVal, res);
                         char* buf = tncc_calloc(255, sizeof(char));
                         sprintf(buf, "RET,%s", dstTok);
-                        vec_push(ir_list, strlen(buf), buf);
+                        vec_enqueue(ir_list, strlen(buf), buf);
 
                         if (NULL != dstTok) { free(dstTok); dstTok = NULL; }
 
@@ -155,7 +155,7 @@ char* ir_genIR(struct astNode* astnode, bool* res)
 
                 char* buf = tncc_calloc(255, sizeof(char));
                 sprintf(buf, "MOV,%s,%d", dstTok, val);
-                vec_push(ir_list, strlen(buf), buf);
+                vec_enqueue(ir_list, strlen(buf), buf);
 
                 return dstTok;                                      // return where the value is stored
             }

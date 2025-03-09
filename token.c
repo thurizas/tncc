@@ -1,6 +1,7 @@
 #include "common.h"
 #include "token.h"
 #include "vector.h"
+#include "node.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,4 +32,39 @@ char* getTokenName(struct token* tok)
 	else
 		return NULL;
 }
+
+static void tok_delete(struct token* token)
+{
+	//fprintf(stderr, "[+]   deleting token: "); tok_print((void*)token);
+	if (NULL != token)
+	{
+		if ((token->type == TOKEN_TYPE_ID) || (token->type == TOKEN_TYPE_KEYWORD) ||
+			(token->type == TOKEN_TYPE_TYPE) || (token->type == TOKEN_TYPE_STRING) ||
+			(token->type == TOKEN_TYPE_BINOP))
+		{
+			free(token->sVal);
+		}
+
+		free(token);
+	}
+}
+
+
+void tokens_clear(struct vec* tokens)
+{
+	fprintf(stderr, "[+] deleting tokens\n");
+
+	if ((tokens->head != NULL) && (tokens->tail != NULL))
+	{
+		struct node* node = tokens->head;
+
+		while (node != NULL)
+		{
+			struct node* nextNode = node->flink;
+			tok_delete((struct token*)node->data);
+			node = nextNode;
+		}
+	}
+}
+
 

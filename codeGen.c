@@ -197,7 +197,7 @@ static void updateMapping(char* tmpVar, char* reg)
     strncpy(entry->tmpVar, tmpVar, strlen(tmpVar));
     entry->reg = tncc_calloc(strlen(reg) + 1, sizeof(char));
     strncpy(entry->reg, reg, strlen(reg));
-    vec_push(symTab, sizeof(struct tblEntry), (void*)entry);
+    vec_enqueue(symTab, sizeof(struct tblEntry), (void*)entry);
 }
 
 static char* lookUpTmpVar(char* tmpVar)
@@ -262,7 +262,7 @@ bool cg_genAsm()
             // generate function label...
             char* buf = tncc_calloc(ASM_INST_LEN, sizeof(char));
             snprintf(buf, ASM_INST_LEN-1, "\n\n%s:\n", fname);
-            vec_push(asmInsts, ASM_INST_LEN, buf);
+            vec_enqueue(asmInsts, ASM_INST_LEN, buf);
             
             // add function prolog
             int localVarCnt = 0;
@@ -273,7 +273,7 @@ bool cg_genAsm()
                 strncat(bufProlog, "\tsub rsp 0x0\n", 17);
                 // TODO : add space requited to bufProlog
             }
-            vec_push(asmInsts, ASM_INST_LEN, bufProlog);
+            vec_enqueue(asmInsts, ASM_INST_LEN, bufProlog);
 
             // iterate through IR list till a new function line or empty
             node = node->flink;
@@ -322,7 +322,7 @@ bool cg_genAsm()
                     }
                    
                     snprintf(buf, ASM_INST_LEN, "\t%10s\t %3s,%s\n", "mov", reg, tokens[2]);
-                    vec_push(asmInsts, strlen(buf), (void*)buf);
+                    vec_enqueue(asmInsts, strlen(buf), (void*)buf);
 
                     if (NULL != reg) { free(reg); reg = NULL; }
                 }
@@ -339,7 +339,7 @@ bool cg_genAsm()
                     }
                     updateMapping(tokens[2], reg);             // x86 uses a single register in inst
                     snprintf(buf, ASM_INST_LEN, "\t%10s\t %3s\n", "neg", reg);
-                    vec_push(asmInsts, strlen(buf), (void*)buf);
+                    vec_enqueue(asmInsts, strlen(buf), (void*)buf);
                 }
                 else if (strcmp(tokens[0], "COMP") == 0)  // not <reg> or not <mem>
                 {
@@ -354,7 +354,7 @@ bool cg_genAsm()
                     }
                     updateMapping(tokens[2], reg);             // x86 uses a single register in inst
                     snprintf(buf, ASM_INST_LEN, "\t%10s\t %3s\n", "not", reg);
-                    vec_push(asmInsts, strlen(buf), (void*)buf);
+                    vec_enqueue(asmInsts, strlen(buf), (void*)buf);
 
                     if (NULL != reg) { free(reg); reg = NULL; }
                 }
@@ -366,7 +366,7 @@ bool cg_genAsm()
                     reg = lookUpTmpVar(tokens[1]);
 
                     snprintf(buf, ASM_INST_LEN, "\t%10s\t %3s, %s\n\t%10s\n", "mov", "rax", reg, "ret");
-                    vec_push(asmInsts, strlen(buf), (void*)buf);
+                    vec_enqueue(asmInsts, strlen(buf), (void*)buf);
                 }
                 else
                 {
@@ -391,7 +391,7 @@ bool cg_genAsm()
     {
         char* buf = tncc_calloc(ASM_INST_LEN, sizeof(char));  // .globl <
         snprintf(buf, ASM_INST_LEN - 1, ".globl %s", fnctName[ndx]);
-        vec_front(asmInsts, ASM_INST_LEN, (void*)buf);
+        vec_push(asmInsts, ASM_INST_LEN, (void*)buf);
     }
 
     // free function name list...

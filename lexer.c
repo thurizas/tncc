@@ -1,6 +1,7 @@
-#include "lexer.h"
-#include "vector.h"
 #include "buffer.h"
+#include "vector.h"
+#include "node.h"
+#include "lexer.h"
 #include "common.h"
 #include "util.h"
 
@@ -65,7 +66,7 @@ bool lexer_init(const char* name, uint8_t flags)
 		  else                                            // not the characters you are searching for....
 		  {
 			ungetc(nextCh, fp);                           // put next character back in the stream
-			buf_append(buf, ch);                          // add the slash to the output buffer
+			if (!((state & LINE_COMMENT) || (state & BLCK_COMMENT))) buf_append(buf, ch); // add the slash to the output buffer
 		  }
 		} 
 
@@ -210,7 +211,7 @@ bool lexer_lex()
 			t->pos.line = line;
 			t->pos.col = col;
 			t->iVal = atoi(buf_data(temp));
-			vec_push(tokens, 0, t);
+			vec_enqueue(tokens, 0, t);
 		  }
 		  else
 		  {
@@ -230,7 +231,7 @@ bool lexer_lex()
 			token->pos.col = col;
 			token->type = TOKEN_TYPE_LPAREN;
 			token->cVal = '(';
-			vec_push(tokens, 0, token);
+			vec_enqueue(tokens, 0, token);
 		  }
 		  else
 		  {
@@ -248,7 +249,7 @@ bool lexer_lex()
 			token->pos.col = col;
 			token->type = TOKEN_TYPE_RPAREN;
 			token->cVal = ')';
-			vec_push(tokens, 0, token);
+			vec_enqueue(tokens, 0, token);
 		  }
 		  else
 		  {
@@ -266,7 +267,7 @@ bool lexer_lex()
 			token->pos.col = col;
 			token->type = TOKEN_TYPE_LCURLYB;
 			token->cVal = '{';
-			vec_push(tokens, 0, token);
+			vec_enqueue(tokens, 0, token);
 		  }
 		  else
 		  {
@@ -284,7 +285,7 @@ bool lexer_lex()
 			token->pos.col = col;
 			token->type = TOKEN_TYPE_RCURLYB;
 			token->cVal = '}';
-			vec_push(tokens, 0, token);
+			vec_enqueue(tokens, 0, token);
 		  }
 		  else
 		  {
@@ -302,7 +303,7 @@ bool lexer_lex()
 			t->pos.line = line;
 			t->pos.col = col;
 			t->cVal = ';';
-			vec_push(tokens, 0, t);
+			vec_enqueue(tokens, 0, t);
 		  }
 		  else
 		  {
@@ -311,21 +312,88 @@ bool lexer_lex()
 		}
 		break;
 
+		case '+':
+		{
+			struct token* t = NULL;
+			t = tncc_calloc(1, sizeof(struct token));
+			t->pos.line = line;
+			t->pos.col = col;
+			if ((ndx + 1 < cntChars) && buf_at(buf, ndx + 1) == '=')
+			{
+				t->type = TOKEN_TYPE_PLUS_EQUALS;
+				t->sVal = tncc_calloc(3, sizeof(unsigned char));
+				t->sVal[0] = '+'; t->sVal[1] = '=';
+				ndx++;
+			}
+			else
+			{
+				t->type = TOKEN_TYPE_PLUS;
+				t->cVal = '+';
+			}
+
+			vec_enqueue(tokens, 0, t);
+		}
+		break;
+
+		case '-' :
+		{
+			struct token* t = NULL;
+			t = tncc_calloc(1, sizeof(struct token));
+			t->pos.line = line;
+			t->pos.col = col;
+
+			char nextCh = buf_peekAt(buf, ndx);      //  peak at next token
+
+			if (nextCh == '-')                       // got '--'
+			{
+				t->type = TOKEN_TYPE_DECREMENT;
+				t->sVal = tncc_calloc(1, 3 * sizeof(char));
+				t->sVal[0] = '-'; t->sVal[1] = '-';
+				ndx = ndx + 1;                       // eat second glyph in operator 
+			}
+			else
+			{ 
+				t->type = TOKEN_TYPE_MINUS;
+				t->cVal = '-';
+			}
+
+			vec_enqueue(tokens, 0, t);
+		}
+		break;
+
 		case '*':         // TODO : need to differentiate between 3*5 (mult) and int* (type)
 		{
-		  struct token* t = NULL;
-		  if (NULL != (t = malloc(sizeof(struct token))))
-		  {
-			t->type = TOKEN_TYPE_ASTERISK;
+			struct token* t = NULL;
+			t = tncc_calloc(1, sizeof(struct token));
+			t->type = TOKEN_TYPE_MULTI;
 			t->pos.line = line;
 			t->pos.col = col;
 			t->cVal = '*';
-			vec_push(tokens, 0, t);
-		  }
-		  else
-		  {
-			exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
-		  }
+			vec_enqueue(tokens, 0, t);
+		}
+		break;
+
+		case '/':
+		{
+			struct token* t = NULL;
+			t = tncc_calloc(1, sizeof(struct token));
+			t->type = TOKEN_TYPE_DIV;
+			t->pos.line = line;
+			t->pos.col = col;
+			t->cVal = '/';
+			vec_enqueue(tokens, 0, t);
+		}
+		break;
+
+		case '%':
+		{
+			struct token* t = NULL;
+			t = tncc_calloc(1, sizeof(struct token));
+			t->type = TOKEN_TYPE_MOD;
+			t->pos.line = line;
+			t->pos.col = col;
+			t->cVal = '%';
+			vec_enqueue(tokens, 0, t);
 		}
 		break;
 
@@ -338,7 +406,7 @@ bool lexer_lex()
 			t->pos.line = line;
 			t->pos.col = col;
 			t->cVal = ',';
-			vec_push(tokens, 0, t);
+			vec_enqueue(tokens, 0, t);
 		  }
 		  else
 		  {
@@ -356,43 +424,11 @@ bool lexer_lex()
 				t->pos.line = line;
 				t->pos.col = col;
 				t->cVal = '~';
-				vec_push(tokens, 0, t);
+				vec_enqueue(tokens, 0, t);
 			}
 			else
 			{
 				exitFailure("Failed to allocate storage for token", ERR_LEX_MEMORY);
-			}
-		}
-			break;
-
-		case '-' :
-		{
-			struct token* t = NULL;
-			if (NULL != (t = malloc(sizeof(struct token))))
-			{
-				char nextCh = buf_peekAt(buf, ndx);      //  peak at next token
-
-				if (nextCh == '-')                       // got '--'
-				{
-					t->type = TOKEN_TYPE_DECREMENT;
-					t->pos.line = line;
-					t->pos.col = col;
-					if (NULL == (t->sVal = calloc(1, 3)))
-					{
-						exitFailure("failed to allocate storage for token", ERR_LEX_MEMORY);
-					}
-					t->sVal[0] = '-'; t->sVal[1] = '-';
-					ndx = ndx + 1;                       // eat second glyph in operator 
-				}
-				else
-				{ 
-					t->type = TOKEN_TYPE_NEGATION;
-					t->pos.line = line;
-					t->pos.col = col;
-					t->cVal = '-';
-				}
-
-				vec_push(tokens, 0, t);
 			}
 		}
 		break;
@@ -478,7 +514,7 @@ bool lexer_lex()
 			if (lexer_isType(temp)) { t->type = TOKEN_TYPE_TYPE;  }
 			if (lexer_isKeywork(temp)) { t->type = TOKEN_TYPE_KEYWORD; }
 
-			vec_push(tokens, (int)strlen(t->sVal)+1, t);
+			vec_enqueue(tokens, (int)strlen(t->sVal)+1, t);
 		  }
 		  else
 		  {
@@ -538,4 +574,66 @@ static bool lexer_isKeywork(struct buffer* token)
 	}
 
 	return res;
+}
+
+// prints token vector to a file 
+void lexer_print(const char* name, const char* ext)
+{
+	FILE* outfp = NULL;
+	char* filename = NULL;
+
+	size_t len = strlen(name) + strlen(ext) + 2;     // one extra for period, one extra for null-terminator
+
+	filename = calloc(1, len * sizeof(char));
+	strcat(strcpy(filename, name), ext);
+
+	if (filename != NULL)
+	{
+		outfp = fopen(filename, "w");
+		if (fp != NULL)
+		{
+			if ((tokens->head != NULL) && (tokens->tail != NULL))
+			{
+				char line[512];                        // buffer for a line
+				struct node* node = tokens->head;
+				do
+				{
+					struct token* t = (struct token*)node->data;
+
+					memset((void*)line, '\0', 512);    // clear line buffer
+
+					sprintf(line, "{ token type: %i, pos: (%i, %i), value:", t->type, t->pos.line, t->pos.col);
+					size_t len = strlen(line);
+					if (t->type == TOKEN_TYPE_INT) sprintf(&line[strlen(line)], "%d", t->iVal);
+					else if (t->type == TOKEN_TYPE_TYPE) sprintf(&line[strlen(line)], "%s", t->sVal);
+					else if (t->type == TOKEN_TYPE_KEYWORD) sprintf(&line[strlen(line)], "%s", t->sVal);
+					else if (t->type == TOKEN_TYPE_ID) sprintf(&line[strlen(line)], "%s", t->sVal);
+					else if (t->type == TOKEN_TYPE_DECREMENT) sprintf(&line[strlen(line)], "%s", t->sVal);
+					else sprintf(&line[strlen(line)], "%c", t->cVal);
+					sprintf(&line[strlen(line)], "  }\n");
+
+					fwrite(line, sizeof(char), strlen(line), outfp);
+
+					node = node->flink;
+				} while (node != NULL);
+			}
+			else
+			{
+				fprintf(stderr, "[-] no token data to output to file\n");
+			}
+
+
+			fclose(outfp);
+		}
+		else
+		{
+			fprintf(stderr, "failed to open lexer output file %s, error is: %d\n", filename, errno);
+		}
+
+		free(filename);
+	}
+	else
+	{
+		fprintf(stderr, "failed to create buffer for lexer output file");
+	}
 }

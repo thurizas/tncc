@@ -16,6 +16,7 @@ extern int optind;
 
 
 #include "common.h"
+#include "util.h"
 #include "token.h"
 #include "lexer.h"
 #include "parser.h"
@@ -33,9 +34,10 @@ int main(int argc, char** argv)
 {
   int choice = -1;
   int res = 0;
-  uint8_t flags = FLAGS_ALL;
+  uint8_t flags = 0x00;
   char* outName = NULL;
   char* inName = NULL;
+  char* basename = NULL;
 
   for (int ndx = 0; ndx < argc; ndx++)
   {
@@ -72,16 +74,16 @@ int main(int argc, char** argv)
 		switch(step)
 		{
 		  case 'l':
-			flags ^= FLAGS_LEX;
+			flags |= FLAGS_LEX;
 			break;
 		  case 'p':
-			flags ^= FLAGS_PAR;
+			flags |= (FLAGS_PAR | FLAGS_LEX);
 			break;
 		  case 'i':
-			  flags ^= FLAGS_IR;
+			  flags |= (FLAGS_IR | FLAGS_PAR | FLAGS_LEX);
 			  break;
 		  case 'c':
-			flags ^= FLAGS_CODEGEN;
+			flags |= (FLAGS_CODEGEN | FLAGS_IR | FLAGS_PAR | FLAGS_LEX);
 			break;
 		}
 	  }
@@ -131,17 +133,32 @@ int main(int argc, char** argv)
 	  goto EXIT;
   }
 
+  // get base name for input file name
+
+  char* locp = strrchr(outName, '.');
+  if (NULL == locp) len = strlen(outName);
+  else len = locp - outName;
+  basename = tncc_calloc(1, (len + 1) * sizeof(char));
+  strncpy(basename, outName, len);
+
 
   if(lexer_init(inName, flags))
   {
 	if (lexer_lex())
 	{
 		struct vec* tokens = lexer_getTokens();
-		fprintf(stdout, "\n******************** lexer output ********************\n");
-		vec_print(tokens, tok_print, true);                                     // print out tokens vector
-		
+
+		if ((flags & FLAGS_DEBUG) == FLAGS_DEBUG)    // print out tokens vector
+		{
+			fprintf(stdout, "\n******************** lexer output ********************\n");
+			vec_print(tokens, tok_print, true);
+			lexer_print(basename, ".lex");
+
+		}
+                                     
 		// check to see if we are required to parse, and if parser is initialized
-		if (((flags & FLAGS_PAR) == FLAGS_PAR) && parser_init(tokens, flags))   
+ 		if ((flags & FLAGS_PAR) != FLAGS_PAR) goto EXIT;
+		if(parser_init(tokens, flags))   
 		{
 		  if (parser_parse())
 		  {
@@ -204,7 +221,7 @@ int main(int argc, char** argv)
 			fprintf(stderr, "[-] failed to initialize parser module\n");
 			res = ERR_PARSE_FAILED;
 		}
-		tokens_clear(tokens);                                    // destory vector of tokens
+		tokens_clear(tokens);                                    // destory contents of token vector
 		vec_free(tokens);
 	}
 	lexer_deinit();
@@ -218,6 +235,7 @@ int main(int argc, char** argv)
 EXIT:
   if(inName != NULL) free(inName);
   if(outName != NULL) free(outName);
+  if(basename != NULL) free(basename);
   
   return res;
 }

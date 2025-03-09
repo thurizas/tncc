@@ -12,6 +12,8 @@ void lexer_deinit();
 
 bool lexer_lex();
 
+void lexer_print(const char*, const char*);
+
 void tok_print(void*);  
 struct vec* lexer_getTokens();
 

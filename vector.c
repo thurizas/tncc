@@ -2,13 +2,10 @@
 #include "common.h"
 #include "node.h"
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
 #include <stdint.h>
-
-
 
 void vec_init(struct vec** v)
 {
@@ -37,7 +34,6 @@ void vec_free(struct vec* v)
 	do
 	{
 	  v->tail = t->blink;
-	  //if(t->data != NULL) free(t->data);
 	  free(t);
 	} while((t = v->tail) != NULL);
   }
@@ -58,13 +54,7 @@ uint32_t vec_len(struct vec* v)
 	return v->cntItems;
 }
 
-// peeks at next value, does not change current index
-void* vec_peek(struct vec* v)
-{
-	return v->curItem->flink;
-}
-
-// return current value, and move current index up one
+// removes front of the vector, discarding the item
 void vec_pop(struct vec* v)
 {
 	if (v->curNdx < v->cntItems)
@@ -75,36 +65,43 @@ void vec_pop(struct vec* v)
 		
 }
 
-// combines the vec_peekCurrent() and vec_pop() operation into a single function
-void* vec_getCurrent(struct vec* v)
+// pushes to the front of the vector
+void vec_push(struct vec* v, size_t size, void* data)
 {
-	void* node = vec_peekCurrent(v);
-	vec_pop(v);
-
-	return node;
-}
-
-// peeks at current token, does not modify current index
-//struct node* vec_peekCurrent(struct vec* v)
-void* vec_peekCurrent(struct vec* v)
-{
-	//struct node* temp = NULL;
-	struct node* temp = NULL;
-
-	if (v->curItem != NULL)
+	struct node* temp = calloc(1, sizeof(struct node));
+	if (NULL == temp)
 	{
-		temp = v->curItem;
-		return temp->data;
+		fprintf(stderr, "[-] failed to allocate new node for vector\n");
 	}
-	//else
-	//{
-	//	fprintf(stderr, "[-] no current item selected, call setCurrentNdx first\n");
-	//}
-	return NULL;
+	else
+	{
+		if ((v->head == NULL) && (v->tail == NULL))                    // list is empty
+		{
+			temp->dataSize = size;
+			temp->data = data;
+			temp->flink = NULL;
+			temp->blink = NULL;
+
+			v->head = temp;
+			v->tail = temp;
+		}
+		else                                                          // list has data
+		{
+			temp->dataSize = size;
+			temp->data = data;
+			temp->blink = NULL;
+			temp->flink = v->head;
+
+			v->head->blink = temp;
+			v->head = temp;
+		}
+
+		v->cntItems++;
+	}
 }
 
 // pushes to the end of the link list
-void vec_push(struct vec* v, size_t size, void* data)
+void vec_enqueue(struct vec* v, size_t size, void* data)
 {
   struct node* temp = calloc(1, sizeof(struct node));
   if (NULL == temp)
@@ -140,40 +137,42 @@ void vec_push(struct vec* v, size_t size, void* data)
   }
 }
 
-// pushes to the front of the vector
-void vec_front(struct vec* v, size_t size, void* data)
-{		
-	struct node* temp = calloc(1, sizeof(struct node));
-	if (NULL == temp)
+// peeks at current token, does not modify current index
+void* vec_getCurrent(struct vec* v)
+{
+	struct node* temp = NULL;
+
+	if (v->curItem != NULL)
 	{
-		fprintf(stderr, "[-] failed to allocate new node for vector\n");
+		temp = v->curItem;
+		return temp->data;
 	}
-	else
-	{
-		if ((v->head == NULL) && (v->tail == NULL))                    // list is empty
-		{
-			temp->dataSize = size;
-			temp->data = data;
-			temp->flink = NULL;
-			temp->blink = NULL;
 
-			v->head = temp;
-			v->tail = temp;
-		}
-		else                                                          // list has data
-		{
-			temp->dataSize = size;
-			temp->data = data;
-			temp->blink = NULL;
-			temp->flink = v->head;
-
-			v->head->blink = temp;
-			v->head = temp;
-		}
-
-		v->cntItems++;
-	}
+	return NULL;
 }
+
+// peeks at next item, does not modify current index)
+void* vec_peekNext(struct vec* v)
+{
+	struct node* temp = NULL;
+
+	if ((v->curItem != NULL) && (v->curItem->flink != NULL))
+	{
+		temp = v->curItem->blink;
+		return temp->data;
+	}
+
+	return NULL;
+}
+
+
+// returns the next element in the vector, combination of vec_pop, and vec_peekNext
+void* vec_getNext(struct vec* v)
+{
+	vec_pop(v);                 // move to next node
+	return vec_getCurrent(v);   // get the data
+}
+
 
 void vec_print(struct vec* v, void (*ptr)(void*), bool blink)
 {
@@ -241,7 +240,7 @@ void vec_copy(struct vec* dst, struct vec* src)
 			if (NULL != data)
 			{
 				memcpy(data, temp->data, len);
-				vec_push(dst, len, (void*)data);
+				vec_enqueue(dst, len, (void*)data);
 			}
 			else
 			{
@@ -254,29 +253,3 @@ void vec_copy(struct vec* dst, struct vec* src)
 	}
 }
 
-// TODO : does this belong here...should be moved to token.c (?)
-void tokens_clear(struct vec* tokens)
-{
-  struct token*    token;
-
-  fprintf(stderr, "[+] deleting token vector\n");
-  if(tokens->cntItems > 0)
-  {
-	vec_setCurrentNdx(tokens, 0);
-
-	token = vec_getCurrent(tokens);
-
-	while (NULL != token)
-	{
-	  if ((token->type == TOKEN_TYPE_ID) || (token->type == TOKEN_TYPE_KEYWORD) ||
-		  (token->type == TOKEN_TYPE_TYPE) || (token->type == TOKEN_TYPE_STRING))
-	  {
-		  free(token->sVal);
-	  }
-
-	  struct token* nextToken = vec_getCurrent(tokens);
-	  free(token);
-	  token = nextToken;
-	}
-  }
-}
