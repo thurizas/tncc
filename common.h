@@ -82,6 +82,15 @@ enum
 
 enum
 {
+	IR_TYPE_PROGRAM,
+	IR_TYPE_FUNCTION,
+	IR_TYPE_STMT,
+	IR_TYPE_EXPR,
+	IR_TYPE_INT_LITERAL
+};
+
+enum
+{
 	AST_STMT_TYPE_RETURN
 };
 
@@ -106,6 +115,21 @@ struct token
 {
 	int32_t    type;
 	struct pos pos;
+
+	union
+	{
+		char     cVal;
+		int32_t  iVal;
+		float    fVal;
+		char*    sVal;
+	};
+};
+
+struct irnode
+{
+	int   type;
+	char* name;
+	char* op;
 
 	union
 	{

@@ -175,7 +175,7 @@ int main(int argc, char** argv)
 			  {
 			    struct vec* irlist = ir_getIR();
 			    printf("\n************************ IR ************************\n"); 
-				vec_print(irlist, ir_printIR, false);
+				vec_print(irlist, ir_printIR, true);
 
 				if (((flags & FLAGS_CODEGEN) == FLAGS_CODEGEN) && cg_init(irlist, flags))
 				{

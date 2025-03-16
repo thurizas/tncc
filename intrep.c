@@ -1,3 +1,4 @@
+#include "common.h"
 #include "intrep.h"
 #include "vector.h"
 #include "node.h"
@@ -7,10 +8,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 //#include <memory.h>
 
 static struct vec* ir_list = NULL;
 static struct astNode* root = NULL;
+
+void ir_errorAndExit(char*, ...);
 
 
 bool ir_init(struct astNode* _root, uint8_t flags)
@@ -53,6 +57,125 @@ struct vec* ir_getIR()
     return ir_list;
 }
 
+void RLPostorder(struct astNode* root, struct vec* irlist)
+{
+    if (root != NULL)
+    {
+        int foo = root->type;
+        switch (root->type)
+        {
+            case AST_TYPE_PROGRAM:
+            {
+                struct irnode* temp = tncc_calloc(1, sizeof(struct irnode));
+                temp->name = tncc_calloc(11, sizeof(char));
+                temp->type = IR_TYPE_PROGRAM;
+                strncpy(temp->name, "PROGRAM", 10);
+                vec_enqueue(irlist, sizeof(struct irnode), (void*)temp);
+
+                //iterate over vector of functions
+                if (root->prog.fncts != NULL)
+                {                        
+                    struct node* vnode = root->prog.fncts->head;
+                    while (vnode != NULL)
+                    {
+                        struct astNode* fnctNode = vnode->data;
+
+                        struct irnode* temp = tncc_calloc(1, sizeof(struct irnode));
+                        temp->type = IR_TYPE_FUNCTION;
+                        temp->name = tncc_calloc(266, sizeof(char));
+                        snprintf(temp->name, 265, "(FUNCTION)%s,%s", fnctNode->fnct.retType, fnctNode->fnct.name);
+                        vec_enqueue(irlist, sizeof(struct irnode), (void*)temp);
+                        RLPostorder(fnctNode, irlist);
+                        vnode = vnode->flink;
+                    }
+                }
+                else
+                {
+                    ir_errorAndExit("No functions found in the AST");
+                }
+            }
+            break;
+
+            case AST_TYPE_FUNCTION:
+            {
+                struct node* vnode = root->fnct.stmts->head;
+
+                //iterator over statements in function body...
+                while (vnode != NULL)
+                {
+                    struct astNode* stmtnode = vnode->data;
+                    //struct irnode* temp = tncc_calloc(1, sizeof(struct irnode));
+                    //temp->type = IR_TYPE_STMT;
+                    
+                    //switch (stmtnode->stmt.type)        // build contents of statement node
+                    //{
+                        //case AST_STMT_TYPE_RETURN:
+                            RLPostorder(stmtnode, irlist);
+                           //break;
+                    //}
+
+                    vnode = vnode->flink;
+                }
+            }
+            break;
+
+            case AST_TYPE_STMT:
+            {
+                struct irnode* temp = tncc_calloc(1, sizeof(struct irnode));
+                temp->type = IR_TYPE_STMT;
+                temp->name = tncc_calloc(255, sizeof(char));
+                snprintf(temp->name, 10, "STATEMENT:");
+
+                switch (root->stmt.type)
+                {
+                    case AST_STMT_TYPE_RETURN:
+                    {
+                        strncat(temp->name, " return", 8);
+                        RLPostorder(root->stmt.returnStmt.exp,irlist);
+                        break;
+                    }
+
+                    default:
+                        ir_errorAndExit("Unsupported AST node type, %d\n", root->stmt.type);
+                }
+
+                vec_enqueue(irlist, sizeof(struct irnode), temp);
+            }
+            break;
+
+            case AST_TYPE_EXPR:
+            {
+                struct irnode* temp = tncc_calloc(1, sizeof(struct irnode));
+                temp->type = IR_TYPE_EXPR;
+                temp->name = tncc_calloc(255, sizeof(char));
+                strncpy(temp->name, "EXPRESSION:", 12);
+                temp->op = tncc_calloc(4, sizeof(char));
+                strncpy(temp->op, root->exp.op, 3);
+
+                RLPostorder(root->exp.right, irlist);
+                RLPostorder(root->exp.left, irlist);
+
+                vec_enqueue(irlist, sizeof(struct irnode), temp);
+            }
+            break;
+
+            case AST_TYPE_INTVAL:
+            {
+                struct irnode* temp = tncc_calloc(1, sizeof(struct irnode));
+                temp->type = IR_TYPE_INT_LITERAL;
+                temp->name = tncc_calloc(12, sizeof(char));
+                snprintf(temp->name, 11, "%d", root->iVal);
+                temp->iVal = root->iVal;
+
+                vec_enqueue(irlist, sizeof(struct irnode), temp);
+            }
+            break;
+
+            default:
+                ir_errorAndExit("Unknown AST node type %d\n", root->type);
+        }
+    }
+}
 
 // IR format: mnemonic,dest,op1,op2 or mnemonic,dest,op1
 char* ir_genIR(struct astNode* astnode, bool* res)
@@ -61,114 +184,30 @@ char* ir_genIR(struct astNode* astnode, bool* res)
     bool cont = true;
     struct astNode* node = root;
 
-    if (NULL != astnode) node = astnode;      // if called recursively, used passed in node
+    RLPostorder(root, ir_list);                 // flatten the AST into a list :right-to-left post-order traversal
 
-    // walk the ast tree and convert each node into TACKY
-    while(cont)
-    {
-        switch (node->type)
-        {
-            case AST_TYPE_PROGRAM:
-            {
-                char* buf = tncc_calloc(11, sizeof(char));
-                strncat(buf, "(PROGRAM)", 10);
-                vec_enqueue(ir_list, 11, buf);
-                struct node* vnode = root->prog.fncts->head;
-                while (vnode != NULL)
-                {
-                    struct astNode* astnode = vnode->data;
-                    char* buf = tncc_calloc(255, sizeof(char));
-                    sprintf(buf, "(FUNCTION),%s,%s", astnode->fnct.name, astnode->fnct.retType);
-                    vec_enqueue(ir_list, strlen(buf), buf);
-                    ir_genIR(astnode, res);
-                    vnode = vnode->flink;
-                }
-                cont = false;
-            }
-            break;
-
-            case AST_TYPE_FUNCTION:
-            {
-                struct node* vnode = node->fnct.stmts->head;
-                while (vnode != NULL)
-                {
-                    struct astNode* astnode = vnode->data;
-                    ir_genIR(astnode, res);                        // process statement
-                    vnode = vnode->flink;
-                }
-
-                cont = false;
-            }
-            break;
-
-            case AST_TYPE_EXPR:
-            {
-                char* leftArg = NULL, *rightArg = NULL, *dstTok = NULL;
-                
-                if ((node->exp.left != NULL) && (node->exp.right == NULL))     // unitary operator (-, ~)
-                {
-                    dstTok = tempName();
-                    leftArg = ir_genIR(node->exp.left, res);
-                    char* buf = tncc_calloc(255, sizeof(char));
-                    sprintf(buf, "%s,%s,%s", (strcmp(node->exp.op,"~") == 0 ? "COMP" : "NEG"), leftArg, dstTok);
-                    vec_enqueue(ir_list, strlen(buf), buf);
-
-                    //if (NULL != dstTok) { free(dstTok); dstTok = NULL; }
-                    if (NULL != leftArg) { free(leftArg); leftArg = NULL; }
-                }
-
-                if (node->exp.right != NULL) ir_genIR(node->exp.right, res);
-               
-                return dstTok;                   // return where the value is stored.
-                cont = false;
-            }
-
-            break;
-
-            case AST_TYPE_STMT:
-            {
-                uint32_t type = node->stmt.type;
-
-                switch(type)
-                {
-                    case AST_STMT_TYPE_RETURN:
-                    {
-                        struct astNode* retVal = node->stmt.returnStmt.exp;
-                        char* dstTok = ir_genIR(retVal, res);
-                        char* buf = tncc_calloc(255, sizeof(char));
-                        sprintf(buf, "RET,%s", dstTok);
-                        vec_enqueue(ir_list, strlen(buf), buf);
-
-                        if (NULL != dstTok) { free(dstTok); dstTok = NULL; }
-
-                        cont = false;
-                    }
-                    break;
-                }
-                break;
-            }
-
-            case AST_TYPE_INTVAL:
-            {
-                int val = node->iVal;
-                char* dstTok = tempName();
-
-                char* buf = tncc_calloc(255, sizeof(char));
-                sprintf(buf, "MOV,%s,%d", dstTok, val);
-                vec_enqueue(ir_list, strlen(buf), buf);
-
-                return dstTok;                                      // return where the value is stored
-            }
-            break;
-        }
-    }
-
+    // TODO: take flattened AST and use to emit IR
     *res = true;
     return NULL;
 }
 
+void ir_errorAndExit(char* fmt, ...)
+{
+  char  buf[1024];
+
+  va_list args;
+  va_start(args, fmt);
+
+  vsprintf(buf, fmt, args);
+  va_end(args);
+
+  fprintf(stderr, "[-] IR generator error: %s\n", buf);
+  exit(ERR_INTREP_FAILED);    
+}
 
 void ir_printIR(void* data)
 {
-    printf("%s\n", (char*)data);
+    struct irnode* tmp = (struct irnode*)data;
+    printf("%3s, %i, %s\n", (tmp->op == NULL ? "": tmp->op), tmp->type, tmp->name);
 }
+
