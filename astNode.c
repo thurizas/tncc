@@ -111,14 +111,14 @@ static void astNode_printExpt(struct exp* node, uint32_t depth)
 
     if (NULL == node->right)                       // only single argument
     {
-        printf("%*soperator: %s", depth, "", node->op);
-        astNode_print(node->left, depth + 4);
+        printf("%*soperator: %s\n", depth, "", node->op);
+        printf("%*schild: \n",depth, ""); astNode_print(node->left, depth + 4);
     }
     else
     {
-        astNode_print(node->left, depth + 4);
-        printf("%*soperator: %s", depth, "", node->op);
-        astNode_print(node->right, depth + 4);
+        printf("%*soperator: %s\n", depth, "", node->op);
+        printf("%*sleft child: \n", depth, "");  astNode_print(node->left, depth + 4);
+        printf("%*sright child: \n", depth, "");  astNode_print(node->right, depth + 4);
     }
 
 }

@@ -167,7 +167,7 @@ int main(int argc, char** argv)
 			printf("\n************************ AST ************************\n");
 			astNode_print(root, 0);
 
-			if (((flags & FLAGS_IR) == FLAGS_IR) && ir_init(root, flags))
+;			if (((flags & FLAGS_IR) == FLAGS_IR) && ir_init(root, flags))
 			{
 			  bool bres = false;
 			  ir_genIR(NULL, &bres);

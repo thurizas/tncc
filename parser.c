@@ -295,7 +295,9 @@ static struct astNode* parse_factor(struct vec* ast)
 // <exp> :: = <factor> | <exp> <binop> <exp>
 static struct astNode* parse_exp(struct vec* ast, int minPrec)
 {
+    struct token* temp = vec_getCurrent(tokens);
     struct astNode* left = parse_factor(ast);
+    struct astNode* exp = NULL;
     struct token* nextToken = vec_getCurrent(tokens);
     char* op = tncc_calloc(3, sizeof(unsigned char));
 
@@ -303,9 +305,10 @@ static struct astNode* parse_exp(struct vec* ast, int minPrec)
     {
         vec_pop(tokens);                                   // eat binary operator
         struct astNode* right = parse_exp(ast, getPrecedence(op) + 1);
-        struct astNode* temp = astNode_create(&(struct astNode) { .type = AST_TYPE_EXPR, .exp.left = left, .exp.right = right });
-        strncpy(temp->exp.op, op, 3);
+        exp = astNode_create(&(struct astNode) { .type = AST_TYPE_EXPR, .exp.left = left, .exp.right = right });
+        strncpy(exp->exp.op, op, 3);
         nextToken = vec_peekNext(tokens);
+        return exp;
     }
 
     return left;
